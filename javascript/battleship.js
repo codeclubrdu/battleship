@@ -7,6 +7,13 @@ var squareSize = 50;
 var gameBoardContainer = document.getElementById("gameboard");
 
 // make the grid columns and rows
+for (let row = 0; row < 10; row++) {
+   const test = document.createElement("div");
+   test.textContent = "0"
+   gameBoardContainer.appendChild(test);
+};
+
+
 
 /* lazy way of tracking when the game is won: just increment hitCount on every hit
    in this version, and according to the official Hasbro rules (http://www.hasbro.com/common/instruct/BattleShip_(2002).PDF)
