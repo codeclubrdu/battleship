@@ -1,155 +1,50 @@
-# Battleship — build the classic game in the console.
-#
-# THE MAP: read the Thought Process in README.md first. Then work the
-# steps below in order, running as you go:  python3 battleship.py
-# Checkpoints at the bottom show you when each layer works — expected
-# output is in the README.
-
-import copy
-import random
 from enum import Enum
-from typing import List
-
-
-# ── The vocabulary of the game — given, so we all speak the same language ──
-# (Enums are just named constants grouped together. Read, don't memorize.)
-
-class Orientation(Enum):
-    VERTICAL = "vertical"
-    HORIZONTAL = "horizontal"
-
-
-class ShipType(Enum):
-    DESTROYER = "destroyer"
-    SUBMARINE = "submarine"
-    CRUISER = "cruiser"
-    BATTLESHIP = "battleship"
-    CARRIER = "carrier"
-
 
 class CellState(Enum):
-    HIT = "hit"
-    MISS = "miss"
-    SHIP = "ship"
-    EMPTY = "empty"
+    EMPTY = 0
+    HIT = 1
+    MISS = 2
+    SHIP = 3
 
 
-Point2D = tuple  # a (row, col) pair
-BoardData = List[List[CellState]]
-
-# Display constants — change the markers if you have better taste than us
-DIM = 10
-EMPTY_MARKER = "◯"
-MISS_MARKER = "⤫"
-HIT_MARKER = "⏺"
-SHIP_MARKER = "☸"
-
-
-class Ship:
-    # STEP 1: a ship needs to know...
-    #   - its length
-    #   - its position: a (row, col) for its top-left cell
-    #   - its orientation: Orientation.HORIZONTAL or VERTICAL
-    #   - whether it has been placed on a board yet
-    #   - how close it is to sinking (hint: hit points that start at length
-    #     and count down; at 0 the ship is sunk)
-    def __init__(self, length: int) -> None:
-        pass  # TODO
-
-
-# STEP 2: the classic fleet — build a dict with one Ship per ShipType:
-# destroyer 2, submarine 3, cruiser 3, battleship 4, carrier 5
-ALL_SHIPS = {
-    # TODO
+BOARD_SIZE = 10
+CHARACTERS = {
+    CellState.EMPTY: "◯",
+    CellState.HIT: "⏺",
+    CellState.MISS: "⤫",
+    CellState.SHIP: "☸",
 }
 
-
 class Board:
-    # A board owns two things (see Thought Process #2 — data vs display):
-    #   self.ships — its own fleet: a fresh copy of ALL_SHIPS
-    #                (careful: a shared copy is a classic bug — look up deepcopy)
-    #   self.hits  — a DIM x DIM grid of CellState tracking every shot so far,
-    #                all EMPTY to start
+    # cells[0] is the entire 1st row.
+    # cells[0][1] is the cell located in the 1st row, 2nd column.
+    cells = [[CellState.EMPTY for _ in range(BOARD_SIZE)] for _ in range(BOARD_SIZE)]
 
-    def __init__(self) -> None:
-        pass  # STEP 3
+    def show(self):
+        print(" ", end=" ")
+        for i in range(BOARD_SIZE):
+            print(i, end=" ")
 
-    # STEP 4: combine self.hits and ship positions into one grid for display.
-    # Start from a copy of self.hits, then stamp CellState.SHIP over the cells
-    # each placed ship covers. If add_ships is False, skip the stamping —
-    # that's what your opponent sees.
-    def _build_board_state(self, add_ships: bool) -> BoardData:
-        pass  # TODO
+        print()
+        for i in range(BOARD_SIZE):
+            print(chr(ord('A') + i), end=" ")
+            for cell in self.cells[i]:
+                print(CHARACTERS[cell], end=" ")
 
-    # STEP 5: print the grid — column numbers 0-9 across the top, row letters
-    # A-J down the side (chr(ord('A') + i) is your friend), one marker per cell.
-    # Expected look: checkpoint 1 in the README.
-    def show(self, show_ships=False):
-        pass  # TODO
-
-    # STEP 6: the rules of placement (Thought Process #5 — this is the tricky one):
-    #   - the whole ship must fit on the board (check the far end!)
-    #   - it can't overlap a ship that's already placed
-    # If the spot is bad, return False and change nothing.
-    # If it's good: save position + orientation on the ship, mark it placed,
-    # return True.
-    def place_ship(self, type: ShipType, position: Point2D, orientation: Orientation) -> bool:
-        pass  # TODO
-
-    # STEP 7: ready = every ship in the fleet has been placed
-    def is_ready(self) -> bool:
-        pass  # TODO
-
-    # STEP 8: did a shot at this position hit a ship?
-    # For now just return True (hit) or False (miss).
-    # Milestone 1 in the README will grow this: record the shot in self.hits,
-    # damage the ship, detect sinking.
-    def make_guess(self, position: Point2D) -> bool:
-        pass  # TODO
+            print()
 
 
-# ── THE GAME — once the checkpoints pass, make the pieces play ──
-# (README milestones, in order:)
-#
-#   1. Upgrade make_guess: record HIT/MISS in self.hits, damage the ship
-#      (hp), mark it sunk at 0. Add is_defeated() — True when the whole
-#      fleet is sunk.
-#   2. parse_position("B4") -> (1, 4). Reject junk input and repeat guesses.
-#   3. random_place_all(board) — random spot + orientation per ship, retry
-#      until place_ship says True.
-#   4. play() — the loop: show boards, your shot (input()), CPU's random
-#      shot, first fleet fully sunk loses.
-#
-# def play():
-#     ...
+def play():
+    while True:
+        my_board = Board()
+        cpu_board = Board()
 
+        my_board.show()
+        print("\n---------------------\n")
+        cpu_board.show()
+
+        guess = input("Input: ")
+        print("Player entered:", guess)
 
 if __name__ == "__main__":
-    # ✅ CHECKPOINT 1 — two empty boards (steps 1-5).
-    # Expected output: README. Don't move on until yours matches.
-    my_board = Board()
-    cpu_board = Board()
-    cpu_board.show()
-    print("\n---------------------\n")
-    my_board.show(show_ships=True)
-
-    # ✅ CHECKPOINT 2 — place the fleet (steps 6-7). Ready flips to True
-    # only when all five ships are down. Try an off-board or overlapping
-    # placement too — it should return False and change nothing.
-    # my_board.place_ship(ShipType.CARRIER, (0, 0), Orientation.VERTICAL)
-    # my_board.place_ship(ShipType.SUBMARINE, (0, 1), Orientation.VERTICAL)
-    # print("Ready:", my_board.is_ready())   # False — three ships to go
-    # my_board.place_ship(ShipType.BATTLESHIP, (0, 2), Orientation.VERTICAL)
-    # my_board.place_ship(ShipType.DESTROYER, (0, 3), Orientation.VERTICAL)
-    # my_board.place_ship(ShipType.CRUISER, (0, 4), Orientation.VERTICAL)
-    # my_board.show(show_ships=True)
-    # print("Ready:", my_board.is_ready())   # True
-
-    # ✅ CHECKPOINT 3 — take a shot (step 8).
-    # (2, 1) is part of the submarine you just placed — hit.
-    # (3, 1) is open water — miss.
-    # print("Hit:", my_board.make_guess((2, 1)))   # True
-    # print("Hit:", my_board.make_guess((3, 1)))   # False
-
-    # Then: milestones. Uncomment when play() exists.
-    # play()
+    play()
