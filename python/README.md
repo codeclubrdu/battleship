@@ -3,10 +3,14 @@
 This project is a starting point to recreate the classic Battleship game. The existing code presents a blank board and
 prompts the player for their guess. The rest is up to you!
 
+```sh
+$ python3 battleship.py
+```
+
 ## Bird's-Eye View
 
 - 2x Boards (1 for each player)
-- 5x types of Ship (see Image A)
+- 5x types of Ship (see [Image A](#preview))
 - Randomly place ships for player and CPU
 
 ### Recommendations
@@ -23,8 +27,8 @@ prompts the player for their guess. The rest is up to you!
 <table>
 <thead>
 <tr>
-<td>A</td>
-<td>B</td>
+<td>Image A</td>
+<td>Image B</td>
 </tr>
 </thead>
 
