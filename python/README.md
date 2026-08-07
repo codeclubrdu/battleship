@@ -9,19 +9,19 @@
 ### Preview
 
 <table>
-    <thead>
-        <tr>
-            <td>A</td>
-            <td>B</td>
-        </tr>
-    </thead>
+<thead>
+<tr>
+<td>A</td>
+<td>B</td>
+</tr>
+</thead>
 
-    <tr>
-        <td>
-            <img width="500px" src="https://i.imgur.com/oMfGhnK.jpeg" />
-        </td>
-        <td>
-            <img width="500px" src="https://i.imgur.com/uGhH3SU.jpeg" />
-        </td>
-    </tr>
+<tr>
+<td>
+<img width="500px" src="https://i.imgur.com/oMfGhnK.jpeg" />
+</td>
+<td>
+<img width="500px" src="https://i.imgur.com/uGhH3SU.jpeg" />
+</td>
+</tr>
 </table>
