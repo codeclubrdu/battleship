@@ -39,9 +39,9 @@ def play():
         my_board = Board()
         cpu_board = Board()
 
-        my_board.show()
-        print("\n---------------------\n")
         cpu_board.show()
+        print("\n---------------------\n")
+        my_board.show()
 
         guess = input("Input: ")
         print("Player entered:", guess)
