@@ -1,18 +1,80 @@
-// Helper function
+/// Constants
+const SIZE = 10;
+
+const SHIPS = [
+   { name: "carrier", len: 5, color: "purple"},
+   { name: "battleship", len: 4, color: "blue"}, 
+   { name: "destroyer", len: 3, color: "orange"},
+   { name:  "submarine", len: 3, color: "darkblue"}, 
+   { name: "patrol", len: 2, color: "pink"}
+];
+
+// Helper functions
 const getElById = (el) => {
    return document.getElementById(el);
 }
 
-// we need to instantiate a battleship game
+const createEl = (parent, value) => {
+   const div = document.createElement("div");
+   switch (value) {
+      case "carrier":
+         div.classList.add("carrier");
+         break;
+      case "battleship":
+         div.classList.add("battleship");
+         break;
+      case "destroyer":
+         div.classList.add("destroyer");
+         break;
+      case "submarine":
+         div.classList.add("submarine");
+         break;
+      case "patrol":
+         div.classList.add("patrol");
+         break;
+   }
+   parent.appendChild(div); 
+}
+
+const validateSeed = (seedX, seedY, boardState, shipLength, vertical) => {
+   console.log("validating seed: ", seedX, " ", seedY)
+   let isValid = false;
+   // check that the ship is in bounds, if not return early
+   if (vertical) {
+      if (seedX + shipLength > SIZE){
+         return isValid; 
+      }
+   } else {
+      if (seedY + shipLength > SIZE) {
+         return isValid;            
+      }
+   }
+   // check if spot is taken by another ship
+   for (let i = 0; i < shipLength - 1; i++) {
+      if (vertical) {
+         if (boardState[seedX + i][seedY] === 0) {
+            isValid = true;
+         } else {
+            isValid = false;
+            return isValid;
+          }
+      } else {
+         if (boardState[seedX][seedY + 1] === 0) {
+            isValid = true;
+         } else {
+            isValid = false;
+            return isValid;
+         }
+      }
+   }
+   return isValid;
+}
+
+// Game logic
 class Game {
 
    constructor() {
-      this.gameBoard = getElById("gameboard");
-      this.newGame();
-   }
-
-   newGame() {
-      new Board();
+      new Board(getElById("gameboard"));
    }
 
    clear() {
@@ -20,35 +82,30 @@ class Game {
    }
 }
 
-// it needs a board
 class Board {
-   boardHeight = 10;
-   boardWidth = 10;
-   board = [
-      [0,0,0,0,0,0,0,0,0,0],
-      [0,0,0,0,0,0,0,0,0,0],
-      [0,0,0,0,0,0,0,0,0,0],
-      [0,0,0,0,0,0,0,0,0,0],
-      [0,0,0,0,0,0,0,0,0,0],
-      [0,0,0,0,0,0,0,0,0,0],
-      [0,0,0,0,0,0,0,0,0,0],
-      [0,0,0,0,0,0,0,0,0,0],
-      [0,0,0,0,0,0,0,0,0,0],
-      [0,0,0,0,0,0,0,0,0,0]
-   ]
-   constructor() {
-      const ship = new Ship();
-      ship.getPos().forEach((pos) => {
-         this.board[pos.x][pos.y] = 1;
+   cols = SIZE;
+   rows = SIZE;
+   boardState;
+   constructor(board) {
+      this.boardState = Array.from({ length: this.rows }, () => Array(this.cols).fill(0));
+      SHIPS.map((shipBase) => {
+         const ship = new Ship(this.boardState, shipBase);
+         ship.getPos().forEach((pos) => {
+            this.boardState[pos.x][pos.y] = shipBase.name;
+         })
       })
-      console.log("board: ", this.board);
+      this.board = board;
+      this.render();
    }
 
-   createBoard() {
-      // how do we place the ships we need in the correct places?
-         // we have 5 ships
-         // they must not conflict
-         // it must be random
+   render() {
+      console.log("board: ", this.boardState);
+      this.boardState.map((row) => {
+         row.map((value) => {
+            createEl(this.board, value);
+         })
+      })
+
    }
 
    checkHit() {
@@ -58,19 +115,38 @@ class Board {
 
 class Ship {
    vertical = true;
-   shipLength = 5;
-   class = "carrier";
-   positions = [new Vec(2,2)];
-   constructor() {
-      for (let i = 0; i < this.shipLength - 1; i++) {
+   shipLength;
+   class;
+   positions = [];
+   constructor(boardState, ship) {
+      this.shipLength = ship.len;
+      this.class = ship.class;
+      // come up with way to generate random number betwen 1-10 that doesn't conflict 
+      // with existing things in board
+      this.positions.push(this.createSeed(boardState));
+      for (let i = 0; i < ship.len - 1; i++) {
          if(this.vertical) {
                this.positions.push(new Vec(this.positions[i].x + 1, this.positions[0].y));
          } else {
             this.positions.push(new Vec(this.positions[i].x, this.positions[i].y + 1));
          }
-         console.log("plotting ship vectors", this.positions);
       }
    }
+
+   createSeed(boardState) {
+      let isSeedInvalid = true;
+      let seedX;
+      let seedY;
+
+      while(isSeedInvalid) {
+         // calling random here is expensive, we should probably just do it once
+         seedX = Math.floor(Math.random() * SIZE);
+         seedY = Math.floor(Math.random() * SIZE);
+         isSeedInvalid = !validateSeed(seedX, seedY, boardState, this.shipLength, this.vertical);
+      }
+      return new Vec(seedX, seedY);
+   }
+
    getPos() {
       return this.positions;
    }
