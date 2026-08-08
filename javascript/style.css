@@ -20,7 +20,7 @@ p, button, input {
 	display: grid;
 	grid-template-columns: repeat(10, 40px);
 	grid-template-rows: repeat(10, 40px);
-	margin:0 auto 2em auto;
+	margin:2em auto;
 	width:400px;
 	height:400px;
 }
@@ -74,4 +74,12 @@ p, button, input {
 
 .patrol {
 	background-color: pink;
+}
+
+.hit {
+	background-color: red;
+}
+
+.miss {
+	background-color: lightgray;
 }

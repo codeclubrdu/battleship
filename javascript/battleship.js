@@ -1,3 +1,7 @@
+// Then check if user sunk ship
+// Then check if user won
+// Then create restart and start game 
+
 /// Constants
 const SIZE = 10;
 
@@ -9,75 +13,11 @@ const SHIPS = [
    { name: "patrol", len: 2, color: "pink"}
 ];
 
-// Helper functions
-const getElById = (el) => {
-   return document.getElementById(el);
-}
-
-const createEl = (parent, value) => {
-   const div = document.createElement("div");
-   switch (value) {
-      case "carrier":
-         div.classList.add("carrier");
-         break;
-      case "battleship":
-         div.classList.add("battleship");
-         break;
-      case "destroyer":
-         div.classList.add("destroyer");
-         break;
-      case "submarine":
-         div.classList.add("submarine");
-         break;
-      case "patrol":
-         div.classList.add("patrol");
-         break;
-   }
-   parent.appendChild(div); 
-}
-
-const validateSeed = (seedX, seedY, boardState, shipLength, vertical) => {
-   let isValid = false;
-   // check that the ship is in bounds, if not return early
-   if (vertical) {
-      if (seedX + shipLength > SIZE){
-         return isValid; 
-      }
-   } else {
-      if (seedY + shipLength > SIZE) {
-         return isValid;            
-      }
-   }
-   // check if spot is taken by another ship
-   for (let i = 0; i < shipLength; i++) {
-      if (vertical) {
-         if (boardState[seedX + i][seedY] === 0) {
-            isValid = true;
-         } else {
-            isValid = false;
-            return isValid;
-          }
-      } else {
-         if (boardState[seedX][seedY + i] === 0) {
-            isValid = true;
-         } else {
-            isValid = false;
-            return isValid;
-         }
-      }
-   }
-   return isValid;
-}
-
 // Game logic
 class Game {
 
    constructor() {
-      new Board(getElById("gameboard"));
-   }
-
-   clear() {
-
+      new Board(document.getElementById("gameboard"));
    }
 }
 
@@ -85,6 +25,7 @@ class Board {
    cols = SIZE;
    rows = SIZE;
    boardState;
+
    constructor(board) {
       this.boardState = Array.from({ length: this.rows }, () => Array(this.cols).fill(0));
       SHIPS.forEach((shipBase) => {
@@ -97,18 +38,92 @@ class Board {
       this.render();
    }
 
+   createPiece(parent, value, position) {
+      const div = document.createElement("div");
+      div.dataset.position = JSON.stringify(position);
+      switch (value) {
+         case "carrier":
+            div.classList.add("carrier");
+            break;
+         case "battleship":
+            div.classList.add("battleship");
+            break;
+         case "destroyer":
+            div.classList.add("destroyer");
+            break;
+         case "submarine":
+            div.classList.add("submarine");
+            break;
+         case "patrol":
+            div.classList.add("patrol");
+            break;
+         case 1:
+            div.classList.add("hit");
+            break;
+         case 2:
+            div.classList.add("miss");
+            break;
+      }
+      div.addEventListener("click", this.checkHit.bind(this))
+      parent.appendChild(div); 
+   }
+
    // TODO: Add a way to render inside/edge blocks differently 
    // so that border isn't doubled inside grid
    render() {
-      this.boardState.map((row) => {
-         row.map((value) => {
-            createEl(this.board, value);
+      this.boardState.map((row, indexX) => {
+         row.map((value, indexY) => {
+            this.createPiece(this.board, value, new Vec(indexX, indexY));
          })
       })
    }
 
-   checkHit() {
+   // No change is kind of pointless but I'm afraid 
+   // if I take it out I'll realize I need it. So I'm leaving
+   // the clutter idc
+   checkHit(element) {
+      const position = JSON.parse(element.srcElement.dataset.position);
+      const value = this.boardState[position.x][position.y];
+      const RESULTS = {
+         miss: { css: "miss", value: 0 }, 
+         noChange: { css: "no-change", value: 1 },
+         hit: { css: "hit", value: 2 }
+      };
+      switch (value) {
+         case 0: 
+            console.log(RESULTS.miss);
+            element.srcElement.classList.add(RESULTS.miss.css);
+            this.updateBoardState(RESULTS.miss.value, position);
+            break;
+         case 1:
+         case 2:
+            console.log("already shot there!");
+            break;
+         case "carrier":
+         case "battleship":
+         case "destroyer":
+         case "submarine":
+         case "patrol":
+            console.log(RESULTS.hit.css);
+            element.srcElement.classList.add(RESULTS.hit.css);
+            this.checkSunk(position)
+            this.updateBoardState(RESULTS.hit.value, position);
+            break;
+      }
+   }
 
+   checkSunk(position) {
+      // look at nearby elements, check to see which direction the ship goes
+      // then once determined we can look to see the other values are all 
+      const shipHit = this.boardState[position.x][position.y]
+      console.log("ship that was hit: ", shipHit);
+      // announce that battleship has been sunk if no other values show the string value
+   }
+
+   // this doesn't do much now but if we ever wanted to do more
+   // robust state managment it's easier to start from here
+   updateBoardState(result, position) {
+      this.boardState[position.x][position.y] = result;
    }
 }
 
@@ -117,12 +132,11 @@ class Ship {
    shipLength;
    class;
    positions = [];
+  
    constructor(boardState, ship) {
       this.vertical = Math.random() < 0.5;
       this.shipLength = ship.len;
       this.class = ship.name;
-      // come up with way to generate random number betwen 1-10 that doesn't conflict 
-      // with existing things in board
       this.positions.push(this.createSeed(boardState));
       for (let i = 0; i < ship.len - 1; i++) {
          if(this.vertical) {
@@ -142,9 +156,42 @@ class Ship {
          // calling random here is expensive, we should probably just do it once
          seedX = Math.floor(Math.random() * SIZE);
          seedY = Math.floor(Math.random() * SIZE);
-         isSeedInvalid = !validateSeed(seedX, seedY, boardState, this.shipLength, this.vertical);
+         isSeedInvalid = !this.validateSeed(seedX, seedY, boardState, this.shipLength, this.vertical);
       }
       return new Vec(seedX, seedY);
+   }
+
+   validateSeed(seedX, seedY, boardState, shipLength, vertical) {
+      let isValid = false;
+      // check that the ship is in bounds, if not return early
+      if (vertical) {
+         if (seedX + shipLength > SIZE){
+            return isValid; 
+         }
+      } else {
+         if (seedY + shipLength > SIZE) {
+            return isValid;            
+         }
+      }
+      // check if spot is taken by another ship
+      for (let i = 0; i < shipLength; i++) {
+         if (vertical) {
+            if (boardState[seedX + i][seedY] === 0) {
+               isValid = true;
+            } else {
+               isValid = false;
+               return isValid;
+            }
+         } else {
+            if (boardState[seedX][seedY + i] === 0) {
+               isValid = true;
+            } else {
+               isValid = false;
+               return isValid;
+            }
+         }
+      }
+      return isValid;
    }
 
    getPos() {
