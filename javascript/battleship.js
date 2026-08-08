@@ -37,7 +37,6 @@ const createEl = (parent, value) => {
 }
 
 const validateSeed = (seedX, seedY, boardState, shipLength, vertical) => {
-   console.log("validating seed: ", seedX, " ", seedY)
    let isValid = false;
    // check that the ship is in bounds, if not return early
    if (vertical) {
@@ -50,7 +49,7 @@ const validateSeed = (seedX, seedY, boardState, shipLength, vertical) => {
       }
    }
    // check if spot is taken by another ship
-   for (let i = 0; i < shipLength - 1; i++) {
+   for (let i = 0; i < shipLength; i++) {
       if (vertical) {
          if (boardState[seedX + i][seedY] === 0) {
             isValid = true;
@@ -59,7 +58,7 @@ const validateSeed = (seedX, seedY, boardState, shipLength, vertical) => {
             return isValid;
           }
       } else {
-         if (boardState[seedX][seedY + 1] === 0) {
+         if (boardState[seedX][seedY + i] === 0) {
             isValid = true;
          } else {
             isValid = false;
@@ -88,7 +87,7 @@ class Board {
    boardState;
    constructor(board) {
       this.boardState = Array.from({ length: this.rows }, () => Array(this.cols).fill(0));
-      SHIPS.map((shipBase) => {
+      SHIPS.forEach((shipBase) => {
          const ship = new Ship(this.boardState, shipBase);
          ship.getPos().forEach((pos) => {
             this.boardState[pos.x][pos.y] = shipBase.name;
@@ -98,14 +97,14 @@ class Board {
       this.render();
    }
 
+   // TODO: Add a way to render inside/edge blocks differently 
+   // so that border isn't doubled inside grid
    render() {
-      console.log("board: ", this.boardState);
       this.boardState.map((row) => {
          row.map((value) => {
             createEl(this.board, value);
          })
       })
-
    }
 
    checkHit() {
@@ -114,13 +113,14 @@ class Board {
 }
 
 class Ship {
-   vertical = true;
+   vertical;
    shipLength;
    class;
    positions = [];
    constructor(boardState, ship) {
+      this.vertical = Math.random() < 0.5;
       this.shipLength = ship.len;
-      this.class = ship.class;
+      this.class = ship.name;
       // come up with way to generate random number betwen 1-10 that doesn't conflict 
       // with existing things in board
       this.positions.push(this.createSeed(boardState));
@@ -183,16 +183,7 @@ new Game();
 /* lazy way of tracking when the game is won: just increment hitCount on every hit
    in this version, and according to the official Hasbro rules (http://www.hasbro.com/common/instruct/BattleShip_(2002).PDF)
    there are 17 hits to be made in order to win the game:
-      Carrier     - 5 hits
-      Battleship  - 4 hits
-      Destroyer   - 3 hits
-      Submarine   - 3 hits
-      Patrol.     - 2 hits
 */
 
-/* create the 2d array that will contain the status of each square on the board
-   and place ships on the board (later, create function for random placement!)
 
-   0 = empty, 1 = part of a ship, 2 = a sunken part of a ship, 3 = a missed shot
-*/
 
