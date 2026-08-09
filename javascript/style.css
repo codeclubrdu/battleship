@@ -2,6 +2,10 @@ body {
     margin: 60px auto;
     width: 70%;
     max-width: 950px;
+	display: flex;
+	flex-direction: column;
+	justify-content: center;
+	align-items: center;
 }
 
 h1 {
@@ -16,6 +20,19 @@ p, button, input {
 	margin-bottom:1em;
 }
 
+button {
+	font-size: 1em;
+	padding: 0 1.25em;
+}
+
+.start-btn {
+	margin-left: .5em;
+}
+
+.hide {
+	display: none;
+}
+
 #gameboard {
 	display: grid;
 	grid-template-columns: repeat(10, 40px);
@@ -23,12 +40,14 @@ p, button, input {
 	margin:2em auto;
 	width:400px;
 	height:400px;
+	position: relative;
 }
 
-#gameboard div {
+.game-board div {
 	width: 40px;
 	height: 40px;
 	border: 1px solid black;
+	box-sizing: border-box;
 }
 
 #infoContainer {
@@ -54,6 +73,43 @@ p, button, input {
 	width: 40px;
 	height: 40px;
 	border: 1px solid black;
+	box-sizing: border-box;
+}
+
+.game-board .top-left-corner {
+	border-top: 2px solid black;
+	border-left: 2px solid black;
+}
+
+.game-board .top-right-corner {
+	border-top: 2px solid black;
+	border-right: 2px solid black;
+}
+
+.game-board .bottom-left-corner {
+	border-bottom: 2px solid black;
+	border-left: 2px solid black;
+}
+
+.game-board .bottom-right-corner {
+	border-bottom: 2px solid black;
+	border-right: 2px solid black;
+}
+
+.game-board .top-edge {
+	border-top: 2px solid black;
+}
+
+.game-board .bottom-edge {
+	border-bottom: 2px solid black;
+}
+
+.game-board .left-edge {
+	border-left: 2px solid black;
+}
+
+.game-board .right-edge {
+	border-right: 2px solid black;
 }
 
 .carrier {
@@ -78,8 +134,19 @@ p, button, input {
 
 .hit {
 	background-color: red;
+	border-color: red;
 }
 
 .miss {
 	background-color: lightgray;
+}
+
+#gameOver {
+    position: absolute;
+    top: 29%;
+    width: 119px;
+    left: 36%;
+    background-color: white;
+    text-align: center;
+    font-size: 1.5em;
 }

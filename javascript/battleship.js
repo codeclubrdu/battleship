@@ -1,4 +1,6 @@
-// TODO: create restart and start game 
+// TODO: create restart
+// add messages -> hit, miss, you already shot there
+// add message won/lost message instead of game over
 // stretch goals:
 // play against an actor
    // it needs to give the user a chance to set up their board 
@@ -19,36 +21,48 @@ const SHIPS = [
 // CPU mode: play against a CPU
 // VS mode: play against another player on the same screen
 const MODE = {single: "single", cpu: "cpu", vs: "vs"};
-const DIFFICULTY = { easy: "easy", normal: "normal", hard: "hard"};
+const DIFFICULTY = { easy: 60, normal: 50, hard: 30};
 
-// Game logic
+const startForm = document.getElementById("startForm")
+startForm.addEventListener("submit", (e) => {
+   e.preventDefault();
+   const formData = Object.fromEntries(new FormData(e.target));
+   console.log("formData: ", formData);
+   startForm.classList.add("hide"); 
+   new Game(formData.difficulty);
+})
+
 class Game {
    turn;
    actor;
    player;
    guessCount;
+   boardElement;
+   board;
+   win;
    MAX_GUESSES;
-   // Add a choice dropdown that let's a user select game types, then that is passed
-   // into constructor when new game is selected
-   
-   constructor() {
+
+   constructor(difficulty) {
       this.guessCount = 0;
-      this.MAX_GUESSES = 30;
-      // if(modeSelected === MODE.single) {
-         new Board(document.getElementById("gameboard"), this);
-      // }
-      // if (modeSelected === MODE.cpu) {
-      //    this.actor = new Actor(DIFFICULTY.easy);
-      // }
+      this.MAX_GUESSES = DIFFICULTY[difficulty];
+      this.boardElement = document.getElementById("gameboard");
+      this.board = new Board(this.boardElement, this);
    }
-   addGuess() {
+   
+   incrementGuess() {
       this.guessCount++;
-      console.log("adding guess count", this.guessCount);
+      this.checkGameOver();
    }
 
    checkGameOver() {
-      if(this.guessCount > MAX_GUESSES) {
-         console.log("Game over");
+      if(this.guessCount >= this.MAX_GUESSES) {
+         // show game over message 
+         const gameOverMessage = document.createElement("p");
+         gameOverMessage.innerText = "Game over";
+         gameOverMessage.id = "gameOver"
+         this.boardElement.appendChild(gameOverMessage);
+         this.board.end();
+
       }
    }
 
@@ -56,9 +70,6 @@ class Game {
       // this is where all updates to non-board related state will go.
       // last attempt message, ships sunk, game win, game loss
       // quit, play again
-   }
-   changeTurn() {
-      // this method will be used when player vs cpu mode is enabled
    }
 }
 
@@ -80,13 +91,16 @@ class Board {
    cols = SIZE;
    rows = SIZE;
    ships = [];
+   boardPieces = [];
    shipsSunk;
    boardState;
    game;
+   boundCheckHit;
 
    constructor(board, game) {
       this.game = game;
       this.shipsSunk = 0;
+      this.boundCheckHit = this.checkHit.bind(this);
       this.boardState = Array.from({ length: this.rows }, () => Array(this.cols).fill(0));
       SHIPS.forEach((shipBase) => {
          const ship = new Ship(this.boardState, shipBase);
@@ -99,42 +113,77 @@ class Board {
       this.render();
    }
 
-   createPiece(parent, value, position) {
-      const div = document.createElement("div");
-      div.dataset.position = JSON.stringify(position);
-      switch (value) {
-         case "carrier":
-            div.classList.add("carrier");
-            break;
-         case "battleship":
-            div.classList.add("battleship");
-            break;
-         case "destroyer":
-            div.classList.add("destroyer");
-            break;
-         case "submarine":
-            div.classList.add("submarine");
-            break;
-         case "patrol":
-            div.classList.add("patrol");
-            break;
-         case 1:
-            div.classList.add("hit");
-            break;
-         case 2:
-            div.classList.add("miss");
-            break;
-      }
-      div.addEventListener("click", this.checkHit.bind(this))
-      parent.appendChild(div); 
+   checkCornerPiece(position) {
+      if (position.x === 0 && position.y === 0 ) {
+         return { value: true, location: "top-left"}
+      } else if (position.x === 0 && position.y === SIZE - 1 ) {
+         return { value: true, location: "top-right"}
+      } else if (position.x === SIZE - 1  && position.y === 0 ) {
+         return { value: true, location: "bottom-left"}
+      } else if (position.x === SIZE - 1  && position.y === SIZE - 1 ) {
+         return { value: true, location: "bottom-right"}
+      } else {
+         return { value: false, location: ""};
+      }         
    }
 
-   // TODO: Add a way to render inside/edge blocks differently 
-   // so that border isn't doubled inside grid
+   checkEdgePiece(position) {
+      if (position.x === 0 ) {
+         return { value: true, location: "top"}
+      } else if (position.y === SIZE - 1 ) {
+         return { value: true, location: "right"}
+      } else if (position.y === 0 ) {
+         return { value: true, location: "left"}
+      } else if (position.x === SIZE - 1) {
+         return { value: true, location: "bottom"}
+      } else {
+         return { value: false, location: ""};
+      }     
+   }
+
+   createPiece(parent, value, position) {
+      const divEl = document.createElement("div");
+      divEl.dataset.position = JSON.stringify(position);
+      const isCornerPiece = this.checkCornerPiece(position);
+      const isEdgePiece = this.checkEdgePiece(position);
+      if (isCornerPiece.value) {
+         divEl.classList.add(`${isCornerPiece.location}-corner`);
+      } else if (isEdgePiece.value) {
+         divEl.classList.add(`${isEdgePiece.location}-edge`);
+      }
+      switch (value) {
+         case "carrier":
+            divEl.classList.add("carrier");
+            break;
+         case "battleship":
+            divEl.classList.add("battleship");
+            break;
+         case "destroyer":
+            divEl.classList.add("destroyer");
+            break;
+         case "submarine":
+            divEl.classList.add("submarine");
+            break;
+         case "patrol":
+            divEl.classList.add("patrol");
+            break;
+         case 1:
+            divEl.classList.add("hit");
+            break;
+         case 2:
+            divEl.classList.add("miss");
+            break;
+      }
+      divEl.addEventListener("click", this.boundCheckHit);
+      parent.appendChild(divEl);
+      return divEl;
+   }
+
    render() {
       this.boardState.map((row, indexX) => {
          row.map((value, indexY) => {
-            this.createPiece(this.board, value, new Vec(indexX, indexY));
+            const piece = this.createPiece(this.board, value, new Vec(indexX, indexY));
+            this.boardPieces.push(piece);
          })
       })
    }
@@ -190,9 +239,18 @@ class Board {
    checkWin() {
       if(this.shipsSunk === SHIPS.length) {
          console.log("you won!");
+         this.end();
          // add element that says you won absolute positioned on top of the winning board
          // it should also have a button below that asks "play again"
       }
+   }
+
+   end() {
+      console.log("board pieces: ", this.boardPieces);
+      this.boardPieces.forEach((piece) => {
+         piece.removeEventListener("click", this.boundCheckHit);
+      })               
+      console.log('game end, removing event listeners')
    }
 
    // this doesn't do much now but if we ever wanted to do more
@@ -305,7 +363,6 @@ class Vec {
    }
 }
 
-new Game();
 
 
 
