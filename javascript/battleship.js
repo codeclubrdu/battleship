@@ -1,6 +1,8 @@
-// Then check if user sunk ship
-// Then check if user won
-// Then create restart and start game 
+// TODO: create restart and start game 
+// stretch goals:
+// play against an actor
+   // it needs to give the user a chance to set up their board 
+// play against a friend, add a 'player 1/2 ready?' so players can't cheat during board setup
 
 /// Constants
 const SIZE = 10;
@@ -9,27 +11,86 @@ const SHIPS = [
    { name: "carrier", len: 5, color: "purple"},
    { name: "battleship", len: 4, color: "blue"}, 
    { name: "destroyer", len: 3, color: "orange"},
-   { name:  "submarine", len: 3, color: "darkblue"}, 
+   { name: "submarine", len: 3, color: "darkblue"}, 
    { name: "patrol", len: 2, color: "pink"}
 ];
 
+// Single mode: try to sink all the ships in X guesses (difficulty gives fewer guesses)
+// CPU mode: play against a CPU
+// VS mode: play against another player on the same screen
+const MODE = {single: "single", cpu: "cpu", vs: "vs"};
+const DIFFICULTY = { easy: "easy", normal: "normal", hard: "hard"};
+
 // Game logic
 class Game {
-
+   turn;
+   actor;
+   player;
+   guessCount;
+   MAX_GUESSES;
+   // Add a choice dropdown that let's a user select game types, then that is passed
+   // into constructor when new game is selected
+   
    constructor() {
-      new Board(document.getElementById("gameboard"));
+      this.guessCount = 0;
+      this.MAX_GUESSES = 30;
+      // if(modeSelected === MODE.single) {
+         new Board(document.getElementById("gameboard"), this);
+      // }
+      // if (modeSelected === MODE.cpu) {
+      //    this.actor = new Actor(DIFFICULTY.easy);
+      // }
+   }
+   addGuess() {
+      this.guessCount++;
+      console.log("adding guess count", this.guessCount);
+   }
+
+   checkGameOver() {
+      if(this.guessCount > MAX_GUESSES) {
+         console.log("Game over");
+      }
+   }
+
+   render() {
+      // this is where all updates to non-board related state will go.
+      // last attempt message, ships sunk, game win, game loss
+      // quit, play again
+   }
+   changeTurn() {
+      // this method will be used when player vs cpu mode is enabled
    }
 }
 
+class Actor {
+   difficulty;
+   constructor(difficulty) {
+      this.difficulty = difficulty;
+      new Board(document.getElementById("gameboard"));
+   }
+
+   guess() {
+      
+   }
+}
+
+// TODO: may need to rethink how boards are rendered on the screen because
+// once we have a cpu, we won't want to render it's board, just log the guesses
 class Board {
    cols = SIZE;
    rows = SIZE;
+   ships = [];
+   shipsSunk;
    boardState;
+   game;
 
-   constructor(board) {
+   constructor(board, game) {
+      this.game = game;
+      this.shipsSunk = 0;
       this.boardState = Array.from({ length: this.rows }, () => Array(this.cols).fill(0));
       SHIPS.forEach((shipBase) => {
          const ship = new Ship(this.boardState, shipBase);
+         this.ships.push(ship);
          ship.getPos().forEach((pos) => {
             this.boardState[pos.x][pos.y] = shipBase.name;
          })
@@ -82,8 +143,10 @@ class Board {
    // if I take it out I'll realize I need it. So I'm leaving
    // the clutter idc
    checkHit(element) {
+      this.game.addGuess();
       const position = JSON.parse(element.srcElement.dataset.position);
       const value = this.boardState[position.x][position.y];
+      // refactor this, it's clunky and could be done better
       const RESULTS = {
          miss: { css: "miss", value: 0 }, 
          noChange: { css: "no-change", value: 1 },
@@ -106,18 +169,30 @@ class Board {
          case "patrol":
             console.log(RESULTS.hit.css);
             element.srcElement.classList.add(RESULTS.hit.css);
-            this.checkSunk(position)
+            const shipName = this.boardState[position.x][position.y]
+            const shipHit = this.ships.find((ship) => ship.class === shipName);
+            shipHit.addHit();
+            const isSunk = shipHit.checkSunk();
+            if (isSunk) {
+               this.shipSank(isSunk, shipHit.class)
+            }
             this.updateBoardState(RESULTS.hit.value, position);
             break;
       }
    }
 
-   checkSunk(position) {
-      // look at nearby elements, check to see which direction the ship goes
-      // then once determined we can look to see the other values are all 
-      const shipHit = this.boardState[position.x][position.y]
-      console.log("ship that was hit: ", shipHit);
-      // announce that battleship has been sunk if no other values show the string value
+   shipSank(isSunk, shipName) {
+      console.log("you just sunk my", shipName);
+      this.shipsSunk++;
+      this.checkWin();
+   }
+
+   checkWin() {
+      if(this.shipsSunk === SHIPS.length) {
+         console.log("you won!");
+         // add element that says you won absolute positioned on top of the winning board
+         // it should also have a button below that asks "play again"
+      }
    }
 
    // this doesn't do much now but if we ever wanted to do more
@@ -131,9 +206,11 @@ class Ship {
    vertical;
    shipLength;
    class;
+   hits;
    positions = [];
   
    constructor(boardState, ship) {
+      this.hits = 0;
       this.vertical = Math.random() < 0.5;
       this.shipLength = ship.len;
       this.class = ship.name;
@@ -194,10 +271,24 @@ class Ship {
       return isValid;
    }
 
+   addHit() {
+      this.hits++;
+   }
+
+   checkSunk() {
+      let sunk = false;
+      if (this.hits === this.shipLength) {
+         sunk = true;
+      }
+      return sunk;
+   }
+
    getPos() {
       return this.positions;
    }
 }
+
+
 
 class Vec {
    x;
@@ -216,21 +307,8 @@ class Vec {
 
 new Game();
 
-// it needs to track state
-   // state like if the user has hit (and where)
-   // state like if the user has missed (and where)
 
 
-// stretch goals
-// play against an actor
-// state management 
-   // it needs to track whose turn is it
-   // it needs to give the user a chance to set up their board 
-
-/* lazy way of tracking when the game is won: just increment hitCount on every hit
-   in this version, and according to the official Hasbro rules (http://www.hasbro.com/common/instruct/BattleShip_(2002).PDF)
-   there are 17 hits to be made in order to win the game:
-*/
 
 
 
