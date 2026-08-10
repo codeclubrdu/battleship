@@ -1,5 +1,4 @@
 // TODO:
-// add messages -> hit, miss, you already shot there
 // stretch goals:
 // play against an actor
    // it needs to give the user a chance to set up their board 
@@ -19,7 +18,9 @@ const SHIPS = [
 // Single mode: try to sink all the ships in X guesses (difficulty gives fewer guesses)
 // CPU mode: play against a CPU
 // VS mode: play against another player on the same screen
-const MODE = {single: "single", cpu: "cpu", vs: "vs"};
+// maybe add a timer to CPU mode
+// maybe make the board bigger/smaller for diff difficulties
+const MODE = {single: "single", cpu: "cpu"};
 const DIFFICULTY = { easy: 60, normal: 50, hard: 30};
 
 const startForm = document.getElementById("startForm")
@@ -38,6 +39,7 @@ class Game {
    boardElement;
    board;
    win;
+   gameOver;
    gameOverMessageEl;
    gameInfoEl;
    guessCountEl;
@@ -45,6 +47,7 @@ class Game {
    MAX_GUESSES;
 
    constructor(difficulty) {
+      this.gameOver = false;
       this.guessCount = 0;
       this.MAX_GUESSES = DIFFICULTY[difficulty];
       this.boardElement = document.getElementById("gameboard");
@@ -66,7 +69,8 @@ class Game {
       }
    }
 
-   gameOver({ win, notifyBoard = false }) {
+   endGame({ win, notifyBoard = false }) {
+      if (this.gameOver) return;
       if (win) this.launchConfetti();
       // show game over message
       const gameOverContainer = document.createElement("div");
@@ -88,6 +92,7 @@ class Game {
       if (notifyBoard) {
          this.board.end();
       }
+      this.gameOver = true;
    }
 
    playAgain() {
@@ -112,11 +117,8 @@ class Game {
    }
 
    render({ message }) {
-      const gameInfoEl = document.getElementById("gameInfo");
-      const guessCountEl = document.getElementById("guessCount");
-
-      guessCountEl.innerText = "Guess: " + this.guessCount + "  | ";
-      gameInfoEl.innerText = message;
+      this.guessCountEl.innerText = "Guesses remaining: " + (this.MAX_GUESSES - this.guessCount) + "  | ";
+      this.gameInfoEl.innerText = message;
    }
 }
 
@@ -129,6 +131,24 @@ class Actor {
 
    guess() {
       
+   }
+}
+
+// step one, user selects the game mode they want to play
+// user sets board from legend
+// user confirms ready to play
+// user created board transforms and user is prompted to go first
+// user selects a guess and sees result
+// actor makes guess and user sees result on board
+// during actor turn user cannot select anything on board
+// game ends when either player or actor has sunk all ships
+//    opposing board
+// user can select play again and is taken back to 
+// user can select change difficulty which takes them
+//    back to user create board
+class Player {
+   constructor() {
+
    }
 }
 
@@ -161,13 +181,13 @@ class Board {
    }
 
    checkCornerPiece(position) {
-      if (position.x === 0 && position.y === 0 ) {
+      if (position.x === 0 && position.y === 0) {
          return { value: true, location: "top-left"}
-      } else if (position.x === 0 && position.y === SIZE - 1 ) {
+      } else if (position.x === 0 && position.y === SIZE - 1) {
          return { value: true, location: "top-right"}
-      } else if (position.x === SIZE - 1  && position.y === 0 ) {
+      } else if (position.x === SIZE - 1  && position.y === 0) {
          return { value: true, location: "bottom-left"}
-      } else if (position.x === SIZE - 1  && position.y === SIZE - 1 ) {
+      } else if (position.x === SIZE - 1  && position.y === SIZE - 1) {
          return { value: true, location: "bottom-right"}
       } else {
          return { value: false, location: ""};
@@ -198,28 +218,14 @@ class Board {
       } else if (isEdgePiece.value) {
          divEl.classList.add(`${isEdgePiece.location}-edge`);
       }
-      switch (value) {
-         case "carrier":
-            divEl.classList.add("carrier");
-            break;
-         case "battleship":
-            divEl.classList.add("battleship");
-            break;
-         case "destroyer":
-            divEl.classList.add("destroyer");
-            break;
-         case "submarine":
-            divEl.classList.add("submarine");
-            break;
-         case "patrol":
-            divEl.classList.add("patrol");
-            break;
-         case 1:
-            divEl.classList.add("hit");
-            break;
-         case 2:
-            divEl.classList.add("miss");
-            break;
+      if (typeof value === "string") {
+         divEl.classList.add(value);
+      }
+      if (value === 2) {
+         divEl.classList.add("hit");
+      }
+      if (value === 1) {
+         divEl.classList.add("miss");
       }
       divEl.addEventListener("click", this.boundCheckHit);
       parent.appendChild(divEl);
@@ -236,49 +242,44 @@ class Board {
    }
 
    checkHit(element) {
-      this.game.incrementGuess();
-      const position = JSON.parse(element.srcElement.dataset.position);
+      const position = JSON.parse(element.target.dataset.position);
       const value = this.boardState[position.x][position.y];
-
-      switch (value) {
-         case 0: 
-            this.game.render({ message: "Miss" })
-            element.srcElement.classList.add("miss");
-            this.updateBoardState(0, position);
-            break;
-         case 1:
-         case 2:
-            this.game.render({ message: "You already shot there."});
-            break;
-         case "carrier":
-         case "battleship":
-         case "destroyer":
-         case "submarine":
-         case "patrol":
-            this.game.render({ message: "Hit!"});
-            element.srcElement.classList.add("hit");
-            const shipName = this.boardState[position.x][position.y]
-            const shipHit = this.ships.find((ship) => ship.class === shipName);
-            shipHit.incrementHit();
-            const isSunk = shipHit.checkSunk();
-            if (isSunk) {
-               this.shipSank(shipHit.class)
-            }
-            this.updateBoardState(2, position);
-            break;
+      if (value === 0) {
+         this.game.incrementGuess();
+         this.game.render({ message: "Miss" })
+         element.srcElement.classList.add("miss");
+         this.updateBoardState(1, position);
+         return;
+      }
+      if (value === 1 || value === 2) {
+         this.game.render({ message: "You already shot there."});
+         return;
+      }
+      if (typeof value === 'string') {
+         this.game.render({ message: "Hit!"});
+         this.game.incrementGuess();
+         element.srcElement.classList.add("hit");
+         const shipName = this.boardState[position.x][position.y]
+         const shipHit = this.ships.find((ship) => ship.class === shipName);
+         shipHit.incrementHit();
+         const isSunk = shipHit.checkSunk();
+         if (isSunk) {
+            this.shipSank(shipHit.class)
+         }
+         this.updateBoardState(2, position);
+         return;
       }
    }
 
    shipSank(shipName) {
-      console.log("you just sunk my", shipName);
+      this.game.render({ message: `You just sunk my ${shipName}!`})
       this.shipsSunk++;
       this.checkWin();
    }
 
    checkWin() {
       if(this.shipsSunk === SHIPS.length) {
-         console.log("you won!");
-         this.game.gameOver({ win: true });
+         this.game.endGame({ win: true });
          this.end();
       }
    }
@@ -289,8 +290,6 @@ class Board {
       })               
    }
 
-   // this doesn't do much now but if we ever wanted to do more
-   // robust state managment it's easier to start from here
    updateBoardState(result, position) {
       this.boardState[position.x][position.y] = result;
    }
@@ -382,20 +381,12 @@ class Ship {
    }
 }
 
-
-
 class Vec {
    x;
    y;
    constructor(x, y) {
       this.x = x;
       this.y = y;
-   }
-   get x() {
-      return this.x; 
-   }
-   get y() {
-      return this.y;
    }
 }
 
