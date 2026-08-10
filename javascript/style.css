@@ -29,6 +29,9 @@ button {
 	margin-left: .5em;
 }
 
+.play-again-btn {
+}
+
 .hide {
 	display: none;
 }
@@ -143,10 +146,46 @@ button {
 
 #gameOver {
     position: absolute;
-    top: 29%;
-    width: 119px;
-    left: 36%;
-    background-color: white;
+    top: 10%;
+    width: auto;
+    left: 16%;
     text-align: center;
     font-size: 1.5em;
+    display: flex;
+    flex-direction: column;
+    height: auto;
+    padding: 2em;
+    border: none;
+    background-color: rgba(0, 0, 0, .5);
+}
+
+#gameOver p {
+	color: white;
+}
+
+#gameOver button {
+	cursor: pointer;
+}
+
+.confetti {
+	position: fixed;
+	top: -10px;
+	width: 8px;
+	height: 8px;
+	animation: confetti-fall 3s linear forwards;
+	pointer-events: none;
+}
+
+@keyframes confetti-fall {
+	to {
+		transform: translateY(105vh) rotate(720deg);
+	}
+}
+
+#infoContainer {
+	display: flex;
+	flex-direction: row;
+	text-align: center;
+	justify-content: center;
+	gap: 5px;
 }

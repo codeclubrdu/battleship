@@ -1,6 +1,5 @@
-// TODO: create restart
+// TODO:
 // add messages -> hit, miss, you already shot there
-// add message won/lost message instead of game over
 // stretch goals:
 // play against an actor
    // it needs to give the user a chance to set up their board 
@@ -27,7 +26,6 @@ const startForm = document.getElementById("startForm")
 startForm.addEventListener("submit", (e) => {
    e.preventDefault();
    const formData = Object.fromEntries(new FormData(e.target));
-   console.log("formData: ", formData);
    startForm.classList.add("hide"); 
    new Game(formData.difficulty);
 })
@@ -40,15 +38,23 @@ class Game {
    boardElement;
    board;
    win;
+   gameOverMessageEl;
+   gameInfoEl;
+   guessCountEl;
+   replayEl;
    MAX_GUESSES;
 
    constructor(difficulty) {
       this.guessCount = 0;
       this.MAX_GUESSES = DIFFICULTY[difficulty];
       this.boardElement = document.getElementById("gameboard");
+      this.gameInfoEl = document.getElementById("gameInfo");
+      this.guessCountEl = document.getElementById("guessCount");
+
       this.board = new Board(this.boardElement, this);
+      this.gameInfoEl.innerText = "Select a square to begin"
    }
-   
+
    incrementGuess() {
       this.guessCount++;
       this.checkGameOver();
@@ -56,20 +62,61 @@ class Game {
 
    checkGameOver() {
       if(this.guessCount >= this.MAX_GUESSES) {
-         // show game over message 
-         const gameOverMessage = document.createElement("p");
-         gameOverMessage.innerText = "Game over";
-         gameOverMessage.id = "gameOver"
-         this.boardElement.appendChild(gameOverMessage);
-         this.board.end();
-
+         this.gameOver({ win: false, notifyBoard: true });
       }
    }
 
-   render() {
-      // this is where all updates to non-board related state will go.
-      // last attempt message, ships sunk, game win, game loss
-      // quit, play again
+   gameOver({ win, notifyBoard = false }) {
+      if (win) this.launchConfetti();
+      // show game over message
+      const gameOverContainer = document.createElement("div");
+      gameOverContainer.id = "gameOver";
+      this.boardElement.appendChild(gameOverContainer);
+
+      const gameOverMessage = document.createElement("p");
+      gameOverMessage.innerText = win ? "You won!" : "You lost.";
+      gameOverContainer.appendChild(gameOverMessage);
+      this.gameOverMessageEl = gameOverMessage;
+      
+      const replay = document.createElement("button");
+      replay.innerText = "Play again";
+      replay.classList.add("play-again-btn");
+      replay.addEventListener("click", this.playAgain.bind(this));
+      gameOverContainer.appendChild(replay);
+      this.replayEl = replay;
+
+      if (notifyBoard) {
+         this.board.end();
+      }
+   }
+
+   playAgain() {
+      this.guessCount = 0;
+      this.boardElement.innerHTML = "";
+      this.gameInfoEl.innerText = "Select a square to begin"
+      this.guessCountEl.innerText = "";
+      this.board = new Board(this.boardElement, this);
+   }
+
+   launchConfetti() {
+      const colors = ["purple", "blue", "orange", "pink", "red", "gold"];
+      for (let i = 0; i < 60; i++) {
+         const piece = document.createElement("div");
+         piece.classList.add("confetti");
+         piece.style.left = Math.random() * 100 + "vw";
+         piece.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+         piece.style.animationDelay = Math.random() * 1.5 + "s";
+         document.body.appendChild(piece);
+         setTimeout(() => piece.remove(), 4500);
+      }
+   }
+
+   render({ message }) {
+      const gameInfoEl = document.getElementById("gameInfo");
+      const guessCountEl = document.getElementById("guessCount");
+
+      guessCountEl.innerText = "Guess: " + this.guessCount + "  | ";
+      gameInfoEl.innerText = message;
    }
 }
 
@@ -188,49 +235,41 @@ class Board {
       })
    }
 
-   // No change is kind of pointless but I'm afraid 
-   // if I take it out I'll realize I need it. So I'm leaving
-   // the clutter idc
    checkHit(element) {
-      this.game.addGuess();
+      this.game.incrementGuess();
       const position = JSON.parse(element.srcElement.dataset.position);
       const value = this.boardState[position.x][position.y];
-      // refactor this, it's clunky and could be done better
-      const RESULTS = {
-         miss: { css: "miss", value: 0 }, 
-         noChange: { css: "no-change", value: 1 },
-         hit: { css: "hit", value: 2 }
-      };
+
       switch (value) {
          case 0: 
-            console.log(RESULTS.miss);
-            element.srcElement.classList.add(RESULTS.miss.css);
-            this.updateBoardState(RESULTS.miss.value, position);
+            this.game.render({ message: "Miss" })
+            element.srcElement.classList.add("miss");
+            this.updateBoardState(0, position);
             break;
          case 1:
          case 2:
-            console.log("already shot there!");
+            this.game.render({ message: "You already shot there."});
             break;
          case "carrier":
          case "battleship":
          case "destroyer":
          case "submarine":
          case "patrol":
-            console.log(RESULTS.hit.css);
-            element.srcElement.classList.add(RESULTS.hit.css);
+            this.game.render({ message: "Hit!"});
+            element.srcElement.classList.add("hit");
             const shipName = this.boardState[position.x][position.y]
             const shipHit = this.ships.find((ship) => ship.class === shipName);
-            shipHit.addHit();
+            shipHit.incrementHit();
             const isSunk = shipHit.checkSunk();
             if (isSunk) {
-               this.shipSank(isSunk, shipHit.class)
+               this.shipSank(shipHit.class)
             }
-            this.updateBoardState(RESULTS.hit.value, position);
+            this.updateBoardState(2, position);
             break;
       }
    }
 
-   shipSank(isSunk, shipName) {
+   shipSank(shipName) {
       console.log("you just sunk my", shipName);
       this.shipsSunk++;
       this.checkWin();
@@ -239,18 +278,15 @@ class Board {
    checkWin() {
       if(this.shipsSunk === SHIPS.length) {
          console.log("you won!");
+         this.game.gameOver({ win: true });
          this.end();
-         // add element that says you won absolute positioned on top of the winning board
-         // it should also have a button below that asks "play again"
       }
    }
 
    end() {
-      console.log("board pieces: ", this.boardPieces);
       this.boardPieces.forEach((piece) => {
          piece.removeEventListener("click", this.boundCheckHit);
       })               
-      console.log('game end, removing event listeners')
    }
 
    // this doesn't do much now but if we ever wanted to do more
@@ -291,12 +327,12 @@ class Ship {
          // calling random here is expensive, we should probably just do it once
          seedX = Math.floor(Math.random() * SIZE);
          seedY = Math.floor(Math.random() * SIZE);
-         isSeedInvalid = !this.validateSeed(seedX, seedY, boardState, this.shipLength, this.vertical);
+         isSeedInvalid = !this.validateSeed({ seedX, seedY, boardState, shipLength: this.shipLength, vertical: this.vertical });
       }
       return new Vec(seedX, seedY);
    }
 
-   validateSeed(seedX, seedY, boardState, shipLength, vertical) {
+   validateSeed({ seedX, seedY, boardState, shipLength, vertical }) {
       let isValid = false;
       // check that the ship is in bounds, if not return early
       if (vertical) {
@@ -329,7 +365,7 @@ class Ship {
       return isValid;
    }
 
-   addHit() {
+   incrementHit() {
       this.hits++;
    }
 
