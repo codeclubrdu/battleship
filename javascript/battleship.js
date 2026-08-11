@@ -23,13 +23,80 @@ const SHIPS = [
 const MODE = {single: "single", cpu: "cpu"};
 const DIFFICULTY = { easy: 60, normal: 50, hard: 30};
 
-const startForm = document.getElementById("startForm")
-startForm.addEventListener("submit", (e) => {
-   e.preventDefault();
-   const formData = Object.fromEntries(new FormData(e.target));
-   startForm.classList.add("hide"); 
-   new Game(formData.difficulty);
+const singleModeSelect = document.getElementById("singleMode");
+const vsCpuModeSelect = document.getElementById("vsCpu");
+const modeSelectContainer = document.querySelector(".mode-select-container");
+const gameBoard = document.getElementById("gameboard");
+const infoContainer = document.getElementById("infoContainer");
+
+// this and the other mode select event listener should be refactored
+// both are the exact same save the elements they interact with
+// this should probably be an app class
+singleModeSelect.addEventListener("click", (e) => {
+   modeSelectContainer.classList.add("hide");
+
+   const singleModeFormController = new AbortController();
+   const singleModeForm = document.getElementById("singleModeForm");
+   singleModeForm.classList.remove("hide");
+   singleModeForm.addEventListener("submit", (e) => {
+      e.preventDefault();
+      const formData = Object.fromEntries(new FormData(e.target));
+      singleModeForm.classList.add("hide"); 
+      document.getElementById("backBtn").classList.add("hide");
+      new Game(formData.difficulty);
+   }, { signal: singleModeFormController.signal });
+   
+   const backBtnController = new AbortController();
+   const backBtn = document.getElementById("backBtn");
+   backBtn.classList.remove("hide");
+   backBtn.addEventListener("click", (e) => {
+      e.preventDefault();
+      singleModeForm.classList.add("hide");
+      singleModeFormController.abort();
+      gameBoard.innerHTML = "";
+      goBackToMainMenu();
+      backBtn.classList.add("hide");
+      backBtnController.abort();
+   }, { signal: backBtnController.signal });
 })
+
+vsCpuModeSelect.addEventListener("click", (e) => {
+   e.preventDefault();
+   console.log('vs mode clicked');
+   modeSelectContainer.classList.add("hide");
+
+   const vsCpuModeFormController = new AbortController();
+   const vsCpuModeForm = document.getElementById("vsCpuModeForm");
+   vsCpuModeForm.classList.remove("hide");
+   vsCpuModeForm.addEventListener("submit", (e) => {
+      e.preventDefault();
+      const formData = Object.fromEntries(new FormData(e.target));
+      vsCpuModeForm.classList.add("hide"); 
+      document.getElementById("backBtn").classList.add("hide");
+      new Game(formData.difficulty);
+   }, { signal: vsCpuModeFormController.signal });
+   
+   const backBtnController = new AbortController();
+   const backBtn = document.getElementById("backBtn");
+   backBtn.classList.remove("hide");
+   backBtn.addEventListener("click", (e) => {
+      e.preventDefault();
+      vsCpuModeForm.classList.add("hide");
+      vsCpuModeFormController.abort();
+      gameBoard.innerHTML = "";
+      goBackToMainMenu();
+      backBtn.classList.add("hide");
+      backBtnController.abort();
+   }, { signal: backBtnController.signal });
+
+})
+
+const goBackToMainMenu = () => {
+   gameBoard.innerHTML = "";
+   modeSelectContainer.classList.remove("hide");
+   const infoElements = infoContainer.querySelectorAll("div");
+   infoElements.forEach((e) => e.innerHTML = "");
+}
 
 class Game {
    turn;
@@ -43,14 +110,13 @@ class Game {
    gameOverMessageEl;
    gameInfoEl;
    guessCountEl;
-   replayEl;
    MAX_GUESSES;
 
    constructor(difficulty) {
       this.gameOver = false;
       this.guessCount = 0;
       this.MAX_GUESSES = DIFFICULTY[difficulty];
-      this.boardElement = document.getElementById("gameboard");
+      this.boardElement = gameBoard;
       this.gameInfoEl = document.getElementById("gameInfo");
       this.guessCountEl = document.getElementById("guessCount");
 
@@ -65,7 +131,7 @@ class Game {
 
    checkGameOver() {
       if(this.guessCount >= this.MAX_GUESSES) {
-         this.gameOver({ win: false, notifyBoard: true });
+         this.endGame({ win: false, notifyBoard: true });
       }
    }
 
@@ -87,7 +153,12 @@ class Game {
       replay.classList.add("play-again-btn");
       replay.addEventListener("click", this.playAgain.bind(this));
       gameOverContainer.appendChild(replay);
-      this.replayEl = replay;
+
+      const backToMainMenuBtn = document.createElement("button");
+      backToMainMenuBtn.innerText = "Back to menu";
+      backToMainMenuBtn.classList.add("play-again-btn");
+      backToMainMenuBtn.addEventListener("click", goBackToMainMenu);
+      gameOverContainer.appendChild(backToMainMenuBtn);
 
       if (notifyBoard) {
          this.board.end();
@@ -133,6 +204,12 @@ class Actor {
       
    }
 }
+
+// extend game with cpuGame
+
+// extend game with singleGame
+
+// move all checkWin logic up into game from board. board should only track it's own state
 
 // step one, user selects the game mode they want to play
 // user sets board from legend

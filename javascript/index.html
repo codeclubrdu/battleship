@@ -11,14 +11,28 @@
 		<div id="guessCount"></div>
 		<div id="gameInfo"></div>
 	</div>
-	<form id="startForm" class="start-container">
-	<p>Click start to begin</p>
+	<div class="mode-select-container">
+		<button id="singleMode" title="Try to sink all battleships randomly placed on a board in as few moves as possible">Single Mode</button>
+		<button id="vsCpu" title="Set up your board, play against a CPU">Versus CPU</button>
+	</div>
+	<div id="nav">
+		<button id="backBtn" class="hide">Back</button>
+	</div>
+	<form id="singleModeForm" class="single-mode-container hide">
 		<select name="difficulty" id="difficulty" class="difficulty">
 			<option value="easy">Easy</option>
 			<option value="normal" selected>Normal</option>
 			<option value="hard">Hard</option>
-</select>
-		<button class="start-btn" type="submit">Start</button>
+		</select>
+		<button class="single-mode-btn" type="submit">Start</button>
+	</form>
+	<form id="vsCpuModeForm" class="single-mode-container hide">
+		<select name="difficulty" id="difficulty" class="difficulty">
+			<option value="easy">Easy</option>
+			<option value="normal" selected>Normal</option>
+			<option value="hard">Hard</option>
+		</select>
+		<button class="single-mode-btn" type="submit">Start</button>
 	</form>
 	<div id="gameboard" class="game-board">
 	</div>

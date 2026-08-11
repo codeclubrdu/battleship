@@ -25,7 +25,12 @@ button {
 	padding: 0 1.25em;
 }
 
-.start-btn {
+.mode-select-container {
+	display: flex;
+	flex-direction: column;
+}
+
+.single-mode-btn {
 	margin-left: .5em;
 }
 
