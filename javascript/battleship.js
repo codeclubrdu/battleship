@@ -4,6 +4,11 @@
    // it needs to give the user a chance to set up their board 
 // play against a friend, add a 'player 1/2 ready?' so players can't cheat during board setup
 
+// Left it at a refactor for better class based code organization
+// Also left at a bug where the second playthrough of a game doesn't
+// show that the game has been won, no console errors.
+
+
 /// Constants
 const SIZE = 10;
 
@@ -29,112 +34,82 @@ const modeSelectContainer = document.querySelector(".mode-select-container");
 const gameBoard = document.getElementById("gameboard");
 const infoContainer = document.getElementById("infoContainer");
 
-// this and the other mode select event listener should be refactored
-// both are the exact same save the elements they interact with
-// this should probably be an app class
-singleModeSelect.addEventListener("click", (e) => {
-   modeSelectContainer.classList.add("hide");
+class App {
 
-   const singleModeFormController = new AbortController();
-   const singleModeForm = document.getElementById("singleModeForm");
-   singleModeForm.classList.remove("hide");
-   singleModeForm.addEventListener("submit", (e) => {
-      e.preventDefault();
-      const formData = Object.fromEntries(new FormData(e.target));
-      singleModeForm.classList.add("hide"); 
-      document.getElementById("backBtn").classList.add("hide");
-      new Game(formData.difficulty);
-   }, { signal: singleModeFormController.signal });
-   
-   const backBtnController = new AbortController();
-   const backBtn = document.getElementById("backBtn");
-   backBtn.classList.remove("hide");
-   backBtn.addEventListener("click", (e) => {
-      e.preventDefault();
-      singleModeForm.classList.add("hide");
-      singleModeFormController.abort();
+   constructor() {
+      this.initModeSelector({ mode: "vsCpu" });
+      this.initModeSelector({ mode: "single" });
+   }
+
+   initModeSelector( { mode }) {
+      const modeSelect = (mode === "vsCpu") ? vsCpuModeSelect : singleModeSelect;
+      modeSelect.addEventListener("click", (e) => {
+         e.preventDefault();
+         modeSelectContainer.classList.add("hide");
+
+         const formController = new AbortController();
+         const form = document.getElementById(mode + "ModeForm");
+         form.classList.remove("hide");
+         form.addEventListener("submit", (e) => {
+            e.preventDefault();
+            const formData = Object.fromEntries(new FormData(e.target));
+            form.classList.add("hide"); 
+            document.getElementById("backBtn").classList.add("hide");
+            new SingleGame({ app: this, difficulty: formData.difficulty});
+         }, { signal: formController.signal });
+         
+         const backBtnController = new AbortController();
+         const backBtn = document.getElementById("backBtn");
+         backBtn.classList.remove("hide");
+         backBtn.addEventListener("click", (e) => {
+            e.preventDefault();
+            form.classList.add("hide");
+            formController.abort();
+            gameBoard.innerHTML = "";
+            this.goBackToMainMenu();
+            backBtn.classList.add("hide");
+            backBtnController.abort();
+         }, { signal: backBtnController.signal });
+      });
+   }
+
+   goBackToMainMenu() {
       gameBoard.innerHTML = "";
-      goBackToMainMenu();
-      backBtn.classList.add("hide");
-      backBtnController.abort();
-   }, { signal: backBtnController.signal });
-})
-
-vsCpuModeSelect.addEventListener("click", (e) => {
-   e.preventDefault();
-   console.log('vs mode clicked');
-   modeSelectContainer.classList.add("hide");
-
-   const vsCpuModeFormController = new AbortController();
-   const vsCpuModeForm = document.getElementById("vsCpuModeForm");
-   vsCpuModeForm.classList.remove("hide");
-   vsCpuModeForm.addEventListener("submit", (e) => {
-      e.preventDefault();
-      const formData = Object.fromEntries(new FormData(e.target));
-      vsCpuModeForm.classList.add("hide"); 
-      document.getElementById("backBtn").classList.add("hide");
-      new Game(formData.difficulty);
-   }, { signal: vsCpuModeFormController.signal });
-   
-   const backBtnController = new AbortController();
-   const backBtn = document.getElementById("backBtn");
-   backBtn.classList.remove("hide");
-   backBtn.addEventListener("click", (e) => {
-      e.preventDefault();
-      vsCpuModeForm.classList.add("hide");
-      vsCpuModeFormController.abort();
-      gameBoard.innerHTML = "";
-      goBackToMainMenu();
-      backBtn.classList.add("hide");
-      backBtnController.abort();
-   }, { signal: backBtnController.signal });
-
-})
-
-const goBackToMainMenu = () => {
-   gameBoard.innerHTML = "";
-   modeSelectContainer.classList.remove("hide");
-   const infoElements = infoContainer.querySelectorAll("div");
-   infoElements.forEach((e) => e.innerHTML = "");
+      modeSelectContainer.classList.remove("hide");
+      const infoElements = infoContainer.querySelectorAll("div");
+      infoElements.forEach((e) => e.innerHTML = "");
+   }
 }
 
 class Game {
-   turn;
-   actor;
-   player;
-   guessCount;
-   boardElement;
+   app;
    board;
-   win;
-   gameOver;
-   gameOverMessageEl;
+   boardElement;
    gameInfoEl;
-   guessCountEl;
-   MAX_GUESSES;
+   gameOver;
 
-   constructor(difficulty) {
-      this.gameOver = false;
-      this.guessCount = 0;
-      this.MAX_GUESSES = DIFFICULTY[difficulty];
+   constructor({ app, difficulty }) {
+      this.app = app
       this.boardElement = gameBoard;
+      this.board = new Board({ board: this.boardElement, game: this });
       this.gameInfoEl = document.getElementById("gameInfo");
-      this.guessCountEl = document.getElementById("guessCount");
-
-      this.board = new Board(this.boardElement, this);
-      this.gameInfoEl.innerText = "Select a square to begin"
+      this.gameOver = false;
    }
-
-   incrementGuess() {
-      this.guessCount++;
-      this.checkGameOver();
-   }
-
-   checkGameOver() {
-      if(this.guessCount >= this.MAX_GUESSES) {
-         this.endGame({ win: false, notifyBoard: true });
+   
+   
+   launchConfetti() {
+      const colors = ["purple", "blue", "orange", "pink", "red", "gold"];
+      for (let i = 0; i < 60; i++) {
+         const piece = document.createElement("div");
+         piece.classList.add("confetti");
+         piece.style.left = Math.random() * 100 + "vw";
+         piece.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+         piece.style.animationDelay = Math.random() * 1.5 + "s";
+         document.body.appendChild(piece);
+         setTimeout(() => piece.remove(), 4500);
       }
    }
-
+   
    endGame({ win, notifyBoard = false }) {
       if (this.gameOver) return;
       if (win) this.launchConfetti();
@@ -157,7 +132,7 @@ class Game {
       const backToMainMenuBtn = document.createElement("button");
       backToMainMenuBtn.innerText = "Back to menu";
       backToMainMenuBtn.classList.add("play-again-btn");
-      backToMainMenuBtn.addEventListener("click", goBackToMainMenu);
+      backToMainMenuBtn.addEventListener("click", this.app.goBackToMainMenu);
       gameOverContainer.appendChild(backToMainMenuBtn);
 
       if (notifyBoard) {
@@ -166,24 +141,52 @@ class Game {
       this.gameOver = true;
    }
 
+   // this will likely need to be refactored to accomodate 
+   // the new board. I think we could maybe just destroy 
+   // this game object and call an app method like restart.
    playAgain() {
       this.guessCount = 0;
       this.boardElement.innerHTML = "";
       this.gameInfoEl.innerText = "Select a square to begin"
       this.guessCountEl.innerText = "";
-      this.board = new Board(this.boardElement, this);
+      this.board = new Board({ board: this.boardElement, game: this});
    }
 
-   launchConfetti() {
-      const colors = ["purple", "blue", "orange", "pink", "red", "gold"];
-      for (let i = 0; i < 60; i++) {
-         const piece = document.createElement("div");
-         piece.classList.add("confetti");
-         piece.style.left = Math.random() * 100 + "vw";
-         piece.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
-         piece.style.animationDelay = Math.random() * 1.5 + "s";
-         document.body.appendChild(piece);
-         setTimeout(() => piece.remove(), 4500);
+   // another refactor to be more general
+   render({ message }) {
+      this.guessCountEl.innerText = "Guesses remaining: " + (this.MAX_GUESSES - this.guessCount) + "  | ";
+      this.gameInfoEl.innerText = message;
+   }
+}
+
+class VsCpuGame extends Game {
+   constructor() {
+     super();
+   }
+}
+
+class SingleGame extends Game {
+   guessCount;
+   gameOverMessageEl;
+   guessCountEl;
+   MAX_GUESSES;
+
+   constructor({ app, difficulty}) {
+      super({ app, difficulty});
+      this.guessCount = 0;
+      this.MAX_GUESSES = DIFFICULTY[difficulty];
+      this.guessCountEl = document.getElementById("guessCount");
+      this.gameInfoEl.innerText = "Select a square to begin"
+   }
+
+   incrementGuess() {
+      this.guessCount++;
+      this.checkGameOver();
+   }
+
+   checkGameOver() {
+      if(this.guessCount >= this.MAX_GUESSES) {
+         this.endGame({ win: false, notifyBoard: true });
       }
    }
 
@@ -197,7 +200,6 @@ class Actor {
    difficulty;
    constructor(difficulty) {
       this.difficulty = difficulty;
-      new Board(document.getElementById("gameboard"));
    }
 
    guess() {
@@ -241,7 +243,7 @@ class Board {
    game;
    boundCheckHit;
 
-   constructor(board, game) {
+   constructor({ board, game }) {
       this.game = game;
       this.shipsSunk = 0;
       this.boundCheckHit = this.checkHit.bind(this);
@@ -467,6 +469,7 @@ class Vec {
    }
 }
 
+new App();
 
 
 
