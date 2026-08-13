@@ -1,0 +1,12 @@
+{
+   "compilerOptions": {
+      "checkJs": true,
+      "strict": false,
+      "noImplicitAny": false,
+      "strictNullChecks": false,
+      "target": "es2022",
+      "module": "es2022",
+      "lib": ["es2022", "dom", "dom.iterable"]
+   },
+   "exclude": ["node_modules"]
+}
