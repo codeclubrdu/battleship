@@ -48,6 +48,47 @@ button {
 	position: relative;
 }
 
+#placementBoardContainer {
+	display: flex;
+	flex-direction: row;
+	gap: 69px;
+}
+
+.placement-board {
+	display: grid;
+	grid-template-columns: repeat(10, 40px);
+	grid-template-rows: repeat(10, 40px);
+	margin:2em auto;
+	width:400px;
+	height:400px;
+	position: relative;
+}
+
+.placement-board div { 
+	width: 40px;
+	height: 40px;
+	border: 1px solid black;
+	box-sizing: border-box;
+}
+
+.ship-options-container {
+	display: flex;
+	flex-direction: column;	
+	gap: 10px
+}
+
+.ship-options-container div {
+	display: flex;
+	flex-direction: row;
+}
+
+.ship-options-container div div {
+	width: 40px;
+	height: 40px;
+	border: 1px solid black;
+	box-sizing: border-box;
+}
+
 .game-board div {
 	width: 40px;
 	height: 40px;

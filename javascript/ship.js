@@ -4,6 +4,7 @@ import { Board } from "./board.js";
 /**
  * Static definition of a ship type.
  * @typedef {{name: string, len: number, color: string}} ShipDef
+ * @typedef {{ name: string, len: number, offset: number, isVert: boolean }} ShipOptionInfo
  */
 
 /**
@@ -22,11 +23,18 @@ class Ship {
      * @param {object} params
      * @param {(number|string)[][]} params.boardState - Board grid; 0 = empty cell.
      * @param {ShipDef} params.ship - Which ship to build.
+     * @param {Vec[]} [params.positions] - Optional positions.
      */
-    constructor({ boardState, ship }) {
+    constructor({ boardState, ship, positions }) {
        this.vertical = Math.random() < 0.5;
        this.shipLength = ship.len;
        this.class = ship.name;
+       // rename create seed
+       if (positions) {
+         // maybe I should move calculate preposed positions here to ship
+         // then change the validate seed to just take in an array of Vecs
+      
+       }
        this.positions.push(this.createSeed(boardState));
        for (let i = 0; i < ship.len - 1; i++) {
           if(this.vertical) {
@@ -116,8 +124,11 @@ class Ship {
    
    /** @type {ShipDef[]}} */
    ships;
-   boundHandleDrag
+   boundHandleDrag;
+   boundHandleMouseDown;
    parent;
+   offset;
+   isVert;
 
    /**
     * Places the ship at a random valid position on the given board.
@@ -130,11 +141,13 @@ class Ship {
    constructor({board, ships, parent}) {
       this.ships = ships
       this.boundHandleDrag = this.handleDrag.bind(this);
+      this.boundHandleMouseDown = this.handleMouseDown.bind(this);
       this.parent = parent;
       ships.map((ship) => {
          this.renderOption({ option: ship, parent: parent });
       })
    }
+
 
    /**
     * Creates an element for a given ship.
@@ -143,27 +156,46 @@ class Ship {
     * @param {HTMLElement} params.parent
     */
    renderOption({ option, parent }) {
+      const title = document.createElement("div");
+      title.innerText = option.name.charAt(0).toUpperCase() + option.name.slice(1);
+      parent.appendChild(title);
       const optionElement = document.createElement("div");
-      optionElement.classList.add(option.name);
+      optionElement.dataset.shipInfo = JSON.stringify(option);
       optionElement.draggable = true;
+      optionElement.addEventListener("mousedown", this.boundHandleMouseDown);
       optionElement.addEventListener("dragstart", this.boundHandleDrag);
+
+      for (let i = 0; i < option.len; i++) {
+         const piece = document.createElement("div");
+         piece.classList.add(option.name);
+         piece.setAttribute("data-option-piece", i.toString());
+         optionElement.appendChild(piece);
+      }
+
       parent.appendChild(optionElement);
+
+      // add a rotate button
    }
 
+   handleMouseDown(event) {
+      this.offset = Number(event.target.dataset.optionPiece);
+   }
 
    /**
     * Click handler for a cell: resolves the guess as miss, repeat, or hit.
-    * @param {DragEvent & { target: HTMLElement, srcElement: HTMLElement }} e - The cell click event.
+    * @param {DragEvent & { target: HTMLElement, srcElement: HTMLElement }} event - The cell click event.
     */
-   handleDrag(e) {
-      console.log("dragged: ", e);
-      // sample data for handling drag data
-//         ev.dataTransfer.setData("text/plain", ev.target.innerText);
-//   ev.dataTransfer.setData("text/html", ev.target.outerHTML);
-//   ev.dataTransfer.setData(
-//     "text/uri-list",
-//     ev.target.ownerDocument.location.href,
-//   );
+   handleDrag(event) {
+      console.log("dragged: ", event.target);
+      console.log("dragged: ", event.currentTarget);
+      const optionInfo = JSON.parse(event.target.dataset.shipInfo);
+      optionInfo.offset = this.offset;
+      optionInfo.isVert = this.isVert;
+      event.dataTransfer.setData("text/json", JSON.stringify(optionInfo));
+   }
+   
+   handleRotate(event) {
+
    }
 
  }

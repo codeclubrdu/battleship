@@ -1,4 +1,4 @@
-import { GuessBoard, Board } from "./board.js";
+import { GuessBoard, Board, PlacementBoard } from "./board.js";
 import { ShipOptions } from "./ship.js";
 
 /**
@@ -134,15 +134,17 @@ class Game {
  */
 class CpuGame extends Game {
 
+   
    /**
     * @param {object} params
     * @param {import("./app.js").App} params.app
     * @param {string} params.difficulty
     * @param {Element} params.gameBoard
+    * @param {Element} params.placementBoardContainer
     */
-   constructor({ app, difficulty, gameBoard }) {
+   constructor({ app, difficulty, gameBoard, placementBoardContainer }) {
       super({ app, difficulty, gameBoard });
-      this.showPlaceShips();
+      this.showPlaceShips({ placementBoardContainer: placementBoardContainer });
    }
 
    //
@@ -159,22 +161,28 @@ class CpuGame extends Game {
    /**
     * Prompts the player to start placing their ships.
     */
-   showPlaceShips() {
+   showPlaceShips({ placementBoardContainer }) {
       this.render({ message: "Drag a ship onto the board, use rotate to change orientation" });
       
       // create a draggable board
       const shipOptionsContainer = document.createElement("div");
       shipOptionsContainer.classList.add("ship-options-container");
-      this.boardElement.appendChild(shipOptionsContainer);
+      placementBoardContainer.appendChild(shipOptionsContainer);
       new ShipOptions({ 
          board: this.board, 
          ships: Game.SHIPS, 
          parent: shipOptionsContainer,
       })
-
-      // create a placement board
-      this.boardElement
-
+      
+      const placementBoard = document.createElement("div");
+      placementBoard.classList.add("placement-board");
+      placementBoardContainer.appendChild(placementBoard);
+      new PlacementBoard({ 
+         boardContainer: placementBoard,
+         game: this, 
+         size: Game.SIZE,
+         shipDefs: Game.SHIPS
+      })
    }
 
    beginGame() {

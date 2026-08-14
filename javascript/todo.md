@@ -3,6 +3,7 @@
 The purpose of this document is to track all of the various ideas I have and keep them on track and prevent scope creep. 
 
 - ending at needing to refactor gameboard. Either keep it as-is and all of it's styling or create a container to keep all of the necessary parent conatiner div's. 
+edit: I think it's best to put this whole draggable board in it's own container and then just hide it. much easier than fighting styling that's still good. I think we'll also need to add another gameboard container for cpu, so maybe a style refactor is inevitable. 
 
 - add descriptions for each element
 
@@ -75,6 +76,44 @@ target.addEventListener("drop", (ev) => {
 ```
 ### PvP Notes
 [notes](#pvp-notes)
+
+**Goal:** play a friend on the same wifi without publishing a website. They open `http://<my-lan-ip>:8080` in a browser, that's it.
+
+**Architecture — client-authoritative + dumb relay (decided):**
+- Each browser keeps its OWN board + ships. Ship positions never cross the wire.
+- A guess goes out as `{x, y}`; the opponent's client answers `hit | miss | sunk(shipName)`.
+- Server = static file host + matchmaker + message pipe (~100 lines in any language). It never sees ship positions.
+- Skipping authoritative server on purpose: 10x code for cheat-proofing we don't need on a couch.
+
+**Wire protocol sketch (WebSocket, JSON messages):**
+- `join` → server pairs first two sockets into a room
+- `ready` (after placement) → both ready = server picks who goes first
+- `guess {x, y}` → relayed to opponent
+- `result {x, y, outcome}` → relayed back
+- `gameover`, `rematch`, `opponent-disconnected`
+
+**Stack — undecided. Trade-offs:**
+- Go: single ~8MB binary, `go:embed` bakes the whole game into it, one-env-var cross-compile. Least ceremony. Front-runner.
+- C#/.NET: static files + websockets built into ASP.NET Core, zero deps, cleanest code. ~70MB self-contained publish. Wins if .NET learning is job-relevant.
+- Rust: axum/tokio, small binary. Most learning friction for a string-relay. Only if learning Rust is the point.
+- Websockets regardless — browser-native, full-duplex, perfect for turn messages.
+
+**Surfacing the other client:**
+- Bind 0.0.0.0, print `http://<lan-ip>:8080` on startup (enumerate interfaces, skip loopback)
+- Nice-to-have: QR code on the start screen for phones
+- Nice-to-have: mDNS broadcast so friend types `battleship.local:8080` (spotty on Android)
+- macOS will firewall-prompt on first run — expected, click allow
+
+**Game-side prereqs (before any networking):**
+- Turn state: `whoseTurn`, block input when it's not yours — falls out of Vs CPU work
+- Two boards rendered: mine (shows my ships + their guesses) and theirs (fog, my guesses only)
+- Stop leaking ships into the DOM: enemy board cells must not carry ship-name classes
+- `PvpGame extends Game` with `onGuess` sending over the socket instead of hitting a local board
+
+**Open decisions:**
+- stack (above)
+- rematch flow: same room or re-pair?
+- disconnect mid-game: forfeit or wait for reconnect?
 
 
 ### JSDoc:

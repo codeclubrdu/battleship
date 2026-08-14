@@ -32,6 +32,7 @@ const vsCpuModeSelect = getEl("vsCpu");
 const modeSelectContainer = selectFirst(".mode-select-container");
 const gameBoard = getEl("gameboard");
 const infoContainer = getEl("infoContainer");
+const placementBoardContainer = getEl("placementBoardContainer"); 
 
 
 /**
@@ -67,7 +68,7 @@ class App {
                formController.abort();
                backBtnController.abort();
                if (mode === "vsCpu") {
-                  new CpuGame({ app: this, difficulty: String(formData.difficulty), gameBoard });
+                  new CpuGame({ app: this, difficulty: String(formData.difficulty), gameBoard, placementBoardContainer: placementBoardContainer});
                } else {
                   new SingleGame({ app: this, difficulty: String(formData.difficulty), gameBoard });
                }
