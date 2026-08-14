@@ -1,4 +1,5 @@
-import Board from "./board.js";
+import { GuessBoard, Board } from "./board.js";
+import { ShipOptions } from "./ship.js";
 
 /**
  * Base game: owns the board, the info bar, and the end-of-game flow.
@@ -17,6 +18,7 @@ class Game {
    static SIZE = 10;
 
    app;
+   /** @type {Board} */
    board;
    difficulty;
    shipsSunk = 0;
@@ -66,12 +68,7 @@ class Game {
    /**
     * Ends the game with a win once every ship is sunk.
     */
-   checkWin() {
-      if(this.shipsSunk === Game.SHIPS.length) {
-         this.endGame({ win: true });
-         this.board.deactivateBoard();
-      }
-   }
+   checkWin() {}
 
    /**
     * Shows the game-over UI (message, replay, back-to-menu). No-op if already over.
@@ -79,7 +76,7 @@ class Game {
     * @param {boolean} params.win - True for a win, false for a loss.
     * @param {boolean} [params.notifyBoard] - Also disable further clicks on the board.
     */
-   endGame({ win, notifyBoard = false }) {
+   endGame({ win }) {
       if (this.gameOver) return;
       if (win) this.#launchConfetti();
       // show game over message
@@ -104,9 +101,6 @@ class Game {
       backToMainMenuBtn.addEventListener("click", this.app.goBackToMainMenu);
       gameOverContainer.appendChild(backToMainMenuBtn);
 
-      if (notifyBoard) {
-         this.board.deactivateBoard();
-      }
       this.gameOver = true;
    }
 
@@ -118,7 +112,7 @@ class Game {
       // this.gameInfoEl.innerText = message;
       this.shipsSunk = 0;
       this.gameOver = false;
-      this.board = new Board({ boardContainer: this.boardElement, game: this, ships: Game.SHIPS, size: Game.SIZE });
+      this.board = new GuessBoard({ boardContainer: this.boardElement, game: this, ships: Game.SHIPS, size: Game.SIZE });
    }
 
    #launchConfetti() {
@@ -167,14 +161,30 @@ class CpuGame extends Game {
     */
    showPlaceShips() {
       this.render({ message: "Drag a ship onto the board, use rotate to change orientation" });
-      // this.gameBoard
+      
+      // create a draggable board
+      const shipOptionsContainer = document.createElement("div");
+      shipOptionsContainer.classList.add("ship-options-container");
+      this.boardElement.appendChild(shipOptionsContainer);
+      new ShipOptions({ 
+         board: this.board, 
+         ships: Game.SHIPS, 
+         parent: shipOptionsContainer,
+      })
+
+      // create a placement board
+      this.boardElement
+
    }
 
-   // beginGame
+   beginGame() {
       // cpu and random board is created
-      //
+      // user sees a blank enemy board
+      // below user sees their board and the resulting 
+      // cpu attempts
+   }
 
-   // endTurn
+   endTurn() {}
 
    #showLegend() {
 
@@ -204,7 +214,7 @@ class SingleGame extends Game {
       this.MAX_GUESSES = SingleGame.DIFFICULTY[difficulty];
       this.guessCountEl = document.getElementById("guessCount");
       this.gameInfoEl.innerText = "Select a square to begin"
-      this.board = new Board({ boardContainer: this.boardElement, game: this, ships: Game.SHIPS, size: Game.SIZE });
+      this.board = new GuessBoard({ boardContainer: this.boardElement, game: this, ships: Game.SHIPS, size: Game.SIZE });
    }
 
    /**
@@ -226,6 +236,16 @@ class SingleGame extends Game {
    }
 
    /**
+    * Ends the game with a win once every ship is sunk.
+    */
+   checkWin() {
+      if(this.shipsSunk === Game.SHIPS.length) {
+         this.endGame({ win: true });
+         this.board.deactivateBoard();
+      }
+   }
+
+   /**
     * Resets guesses and game state, then builds a fresh board.
     */
    playAgain() {
@@ -235,7 +255,7 @@ class SingleGame extends Game {
       this.guessCount = 0;
       this.shipsSunk = 0;
       this.gameOver = false;
-      this.board = new Board({ boardContainer: this.boardElement, game: this, ships: Game.SHIPS, size: Game.SIZE });
+      this.board = new GuessBoard({ boardContainer: this.boardElement, game: this, ships: Game.SHIPS, size: Game.SIZE });
    }
 
    #checkGameOver() {

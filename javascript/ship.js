@@ -1,4 +1,5 @@
 import Vec from "./vector.js";
+import { Board } from "./board.js";
 
 /**
  * Static definition of a ship type.
@@ -111,4 +112,60 @@ class Ship {
     }
  }
 
- export default Ship;
+ class ShipOptions {
+   
+   /** @type {ShipDef[]}} */
+   ships;
+   boundHandleDrag
+   parent;
+
+   /**
+    * Places the ship at a random valid position on the given board.
+    * @param {object} params
+    * @param {Board} params.board - Board grid; 0 = empty cell.
+    * @param {ShipDef[]} params.ships - Which ship to build.
+    * @param {HTMLElement} params.parent - Element that will contain the ships.
+    */
+   
+   constructor({board, ships, parent}) {
+      this.ships = ships
+      this.boundHandleDrag = this.handleDrag.bind(this);
+      this.parent = parent;
+      ships.map((ship) => {
+         this.renderOption({ option: ship, parent: parent });
+      })
+   }
+
+   /**
+    * Creates an element for a given ship.
+    * @param {object} params
+    * @param {ShipDef} params.option 
+    * @param {HTMLElement} params.parent
+    */
+   renderOption({ option, parent }) {
+      const optionElement = document.createElement("div");
+      optionElement.classList.add(option.name);
+      optionElement.draggable = true;
+      optionElement.addEventListener("dragstart", this.boundHandleDrag);
+      parent.appendChild(optionElement);
+   }
+
+
+   /**
+    * Click handler for a cell: resolves the guess as miss, repeat, or hit.
+    * @param {DragEvent & { target: HTMLElement, srcElement: HTMLElement }} e - The cell click event.
+    */
+   handleDrag(e) {
+      console.log("dragged: ", e);
+      // sample data for handling drag data
+//         ev.dataTransfer.setData("text/plain", ev.target.innerText);
+//   ev.dataTransfer.setData("text/html", ev.target.outerHTML);
+//   ev.dataTransfer.setData(
+//     "text/uri-list",
+//     ev.target.ownerDocument.location.href,
+//   );
+   }
+
+ }
+
+export { Ship, ShipOptions };

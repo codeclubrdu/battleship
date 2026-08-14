@@ -56,14 +56,14 @@ class App {
          modeSelectContainer.classList.add("hide");
 
          const formController = new AbortController();
-         const form = document.getElementById(mode + "ModeForm");
+         const form = getEl(mode + "ModeForm");
          form.classList.remove("hide");
          form.addEventListener("submit", (e) => {
             e.preventDefault();
             if (e.target instanceof HTMLFormElement) {
                const formData = Object.fromEntries(new FormData(e.target));
                form.classList.add("hide"); 
-               document.getElementById("backBtn").classList.add("hide");
+               getEl("backBtn").classList.add("hide");
                formController.abort();
                backBtnController.abort();
                if (mode === "vsCpu") {
@@ -78,7 +78,7 @@ class App {
          }, { signal: formController.signal });
          
          const backBtnController = new AbortController();
-         const backBtn = document.getElementById("backBtn");
+         const backBtn = getEl("backBtn");
          backBtn.classList.remove("hide");
          backBtn.addEventListener("click", (e) => {
             e.preventDefault();

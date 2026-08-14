@@ -2,6 +2,14 @@
 
 The purpose of this document is to track all of the various ideas I have and keep them on track and prevent scope creep. 
 
+- ending at needing to refactor gameboard. Either keep it as-is and all of it's styling or create a container to keep all of the necessary parent conatiner div's. 
+
+- add descriptions for each element
+
+- drag events are registering and I think I'm okay with keeping each ship a square. when a square is dropped it will have four arrows, where the user can choose a direction the ship spreads out. 
+
+- we will need an undo button for drops made
+
 # Order
 1) Add Vs CPU mode - in flight
 2) Convert to approachable solve
@@ -51,6 +59,20 @@ user can select play again and is taken back to
 user can select change difficulty which takes them
    back to user create board
 
+Drag and drop Example: 
+``` javascript
+const target = document.getElementById("target");
+
+// Cancel dragover so that drop can fire
+target.addEventListener("dragover", (ev) => {
+  ev.preventDefault();
+});
+target.addEventListener("drop", (ev) => {
+  ev.preventDefault();
+  const data = ev.dataTransfer.getData("text/plain");
+  ev.target.append(data);
+});
+```
 ### PvP Notes
 [notes](#pvp-notes)
 
