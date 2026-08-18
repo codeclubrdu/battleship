@@ -7,9 +7,7 @@ import { Board } from "./board.js";
  * @typedef {{ name: string, len: number, offset: number, isVert: boolean }} ShipOptionInfo
  */
 
-/**
- * A single ship: picks its own spot on the board and tracks hits taken.
- */
+
 class Ship {
     vertical;
     shipLength;
@@ -19,90 +17,32 @@ class Ship {
     positions = [];
 
     /**
-     * Places the ship at a random valid position on the given board.
      * @param {object} params
-     * @param {(number|string)[][]} params.boardState - Board grid; 0 = empty cell.
      * @param {ShipDef} params.ship - Which ship to build.
-     * @param {Vec[]} [params.positions] - Optional positions.
+     * @param {Vec} params.origin - Bow cell the ship extends from.
+     * @param {boolean} params.vertical - Extends down when true, right when false.
      */
-    constructor({ boardState, ship, positions }) {
-       this.vertical = Math.random() < 0.5;
+    constructor({ ship, origin, vertical }) {
+       this.vertical = vertical;
        this.shipLength = ship.len;
        this.class = ship.name;
-       // rename create seed
-       if (positions) {
-         // maybe I should move calculate preposed positions here to ship
-         // then change the validate seed to just take in an array of Vecs
-      
-       }
-       this.positions.push(this.createSeed(boardState));
-       for (let i = 0; i < ship.len - 1; i++) {
-          if(this.vertical) {
-                this.positions.push(new Vec(this.positions[i].x + 1, this.positions[0].y));
-          } else {
-             this.positions.push(new Vec(this.positions[i].x, this.positions[i].y + 1));
-          }
-       }
+       this.positions = Ship.calculatePositions({ origin, len: ship.len, vertical });
     }
 
     /**
-     * Rolls random origins until one fits the whole ship without collisions.
-     * @param {(number|string)[][]} boardState
-     * @returns {Vec} A valid origin cell for the ship.
-     */
-    createSeed(boardState) {
-       let isSeedInvalid = true;
-       let seedX;
-       let seedY;
-
-       while(isSeedInvalid) {
-          seedX = Math.floor(Math.random() * boardState.length);
-          seedY = Math.floor(Math.random() * boardState.length);
-          isSeedInvalid = !this.validateSeed({ seedX, seedY, boardState, shipLength: this.shipLength, vertical: this.vertical });
-       }
-       return new Vec(seedX, seedY);
-    }
-
-    /**
+     * Cells a ship of the given length would cover from origin.
      * @param {object} params
-     * @param {number} params.seedX - Candidate origin row.
-     * @param {number} params.seedY - Candidate origin column.
-     * @param {(number|string)[][]} params.boardState
-     * @param {number} params.shipLength
+     * @param {Vec} params.origin
+     * @param {number} params.len
      * @param {boolean} params.vertical
-     * @returns {boolean} True when the ship fits in bounds with no overlap.
+     * @returns {Vec[]}
      */
-    validateSeed({ seedX, seedY, boardState, shipLength, vertical }) {
-       let isValid = false;
-       // check that the ship is in bounds, if not return early
-       if (vertical) {
-          if (seedX + shipLength > boardState.length){
-             return isValid;
-          }
-       } else {
-          if (seedY + shipLength > boardState.length) {
-             return isValid;
-          }
+    static calculatePositions({ origin, len, vertical }) {
+       const positions = [];
+       for (let i = 0; i < len; i++) {
+          positions.push(vertical ? new Vec(origin.x + i, origin.y) : new Vec(origin.x, origin.y + i));
        }
-       // check if spot is taken by another ship
-       for (let i = 0; i < shipLength; i++) {
-          if (vertical) {
-             if (boardState[seedX + i][seedY] === 0) {
-                isValid = true;
-             } else {
-                isValid = false;
-                return isValid;
-             }
-          } else {
-             if (boardState[seedX][seedY + i] === 0) {
-                isValid = true;
-             } else {
-                isValid = false;
-                return isValid;
-             }
-          }
-       }
-       return isValid;
+       return positions;
     }
 
     incrementHit() {
@@ -126,26 +66,28 @@ class Ship {
    ships;
    boundHandleDrag;
    boundHandleMouseDown;
+   boundHandleRotate;
    parent;
    offset;
-   isVert;
+   isVert = false;
 
    /**
     * Places the ship at a random valid position on the given board.
     * @param {object} params
-    * @param {Board} params.board - Board grid; 0 = empty cell.
     * @param {ShipDef[]} params.ships - Which ship to build.
     * @param {HTMLElement} params.parent - Element that will contain the ships.
     */
    
-   constructor({board, ships, parent}) {
+   constructor({ ships, parent }) {
       this.ships = ships
       this.boundHandleDrag = this.handleDrag.bind(this);
       this.boundHandleMouseDown = this.handleMouseDown.bind(this);
+      this.boundHandleRotate = this.handleRotate.bind(this);
       this.parent = parent;
       ships.map((ship) => {
          this.renderOption({ option: ship, parent: parent });
       })
+      this.#renderRotateButton();
    }
 
 
@@ -182,20 +124,36 @@ class Ship {
    }
 
    /**
-    * Click handler for a cell: resolves the guess as miss, repeat, or hit.
     * @param {DragEvent & { target: HTMLElement, srcElement: HTMLElement }} event - The cell click event.
     */
    handleDrag(event) {
-      console.log("dragged: ", event.target);
-      console.log("dragged: ", event.currentTarget);
       const optionInfo = JSON.parse(event.target.dataset.shipInfo);
       optionInfo.offset = this.offset;
       optionInfo.isVert = this.isVert;
       event.dataTransfer.setData("text/json", JSON.stringify(optionInfo));
    }
    
-   handleRotate(event) {
 
+   /**
+    * @param {MouseEvent & { target: HTMLElement, srcElement: HTMLElement }} event - The cell click event.
+    */
+   handleRotate(event) {
+     console.log("rotating") 
+     // we need to store references to each ship option
+     // 
+   }
+
+   // destroy self
+   destoryShip() {
+      
+   }
+
+   #renderRotateButton() {
+      const button = document.createElement("button");
+      button.classList.add("rotate-btn");
+      button.innerText = "Rotate";
+      button.addEventListener("click", this.boundHandleRotate);
+      this.parent.appendChild(button);
    }
 
  }

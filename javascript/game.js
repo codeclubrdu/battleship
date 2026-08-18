@@ -169,7 +169,6 @@ class CpuGame extends Game {
       shipOptionsContainer.classList.add("ship-options-container");
       placementBoardContainer.appendChild(shipOptionsContainer);
       new ShipOptions({ 
-         board: this.board, 
          ships: Game.SHIPS, 
          parent: shipOptionsContainer,
       })

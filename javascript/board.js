@@ -35,6 +35,7 @@ class Board {
     */
    renderBoardState() {
       this.boardContainer.innerHTML = "";
+      this.boardPieces = [];
       this.boardState.map((row, indexX) => {
          row.map((value, indexY) => {
             const piece = this.createPiece({ parent: this.boardContainer, value: value, position: new Vec(indexX, indexY) });
@@ -49,6 +50,48 @@ class Board {
     */
    updateBoardState(result, position) {
       this.boardState[position.x][position.y] = result;
+   }
+
+   /**
+    * A placement is valid when every cell is on the board and unoccupied.
+    * @param {Vec[]} positions - Candidate cells for a ship.
+    * @returns {boolean}
+    */
+   isValidPlacement(positions) {
+      return positions.every((pos) =>
+         pos.x >= 0 && pos.x < this.rows &&
+         pos.y >= 0 && pos.y < this.cols &&
+         this.boardState[pos.x][pos.y] === 0
+      );
+   }
+
+   /**
+    * Commits a ship to the board: tracks it and stamps its cells into boardState.
+    * Assumes the placement was already validated.
+    * @param {Ship} ship
+    */
+   placeShip(ship) {
+      this.ships.push(ship);
+      ship.getPos().forEach((pos) => {
+         this.boardState[pos.x][pos.y] = ship.class;
+      })
+   }
+
+   /**
+    * Rolls random origins and orientations until one fits, then builds the ship.
+    * @param {import("./ship.js").ShipDef} shipDef
+    * @returns {Ship}
+    */
+   placeShipRandomly(shipDef) {
+      let origin;
+      let vertical;
+      let positions;
+      do {
+         vertical = Math.random() < 0.5;
+         origin = new Vec(Math.floor(Math.random() * this.rows), Math.floor(Math.random() * this.cols));
+         positions = Ship.calculatePositions({ origin, len: shipDef.len, vertical });
+      } while (!this.isValidPlacement(positions));
+      return new Ship({ ship: shipDef, origin, vertical });
    }
 
 
@@ -166,13 +209,6 @@ class PlacementBoard extends Board {
       if (typeof value === "string") {
          divEl.classList.add(value);
       }
-      if (value === 2) {
-         divEl.classList.add("hit");
-      }
-      if (value === 1) {
-         divEl.classList.add("miss");
-      }
-
       divEl.addEventListener("dragover", this.boundHandleDragover);
       divEl.addEventListener("drop", this.boundHandleDrop);
       parent.appendChild(divEl);
@@ -195,29 +231,18 @@ class PlacementBoard extends Board {
       event.preventDefault();
       /** @type {import("./ship.js").ShipOptionInfo}*/
       const shipData = JSON.parse(event.dataTransfer.getData("text/json"));
+      // check if ship has already been placed on board
+      // update message if so
       const targetElementPosition = JSON.parse(event.target.dataset.position);
       const targetPosition = new Vec(targetElementPosition.x, targetElementPosition.y);
-      const preposedPositions = this.#calculatepreposedPositions({ shipInfo: shipData, position: targetPosition});
-      const preposedStart = this.#calculateProposedStart({ shipInfo: shipData, position: targetPosition})
-      console.log("preposed positions: ", preposedPositions);
-
-      // maybe use validSeed for a given ship, we have board state, we just need to find 
-      // that ship... but the board may not have the ship
-      /** @type {import("./ship.js").ShipDef}*/
-      const shipBase = this.shipDefs.find((shipDef) => shipDef.name === shipData.name);
-
-      const proposedShip = new Ship({ boardState: this.boardState, ship: shipBase });
-
-      console.log("propsed ship: ", proposedShip);
-
-      //
-      // check if drop is valid
-         // drop is valid if it's in bounds
-         // drop is valid if there's nothing at each position
-      // if not do nothing
-      // if valid update boardstate
-      // re-render board state
-      
+      const origin = this.#calculateProposedOrigin({ shipInfo: shipData, position: targetPosition });
+      const proposedPositions = Ship.calculatePositions({ origin, len: shipData.len, vertical: shipData.isVert });
+      if (!this.isValidPlacement(proposedPositions)) {
+         return;
+      }
+      const shipDef = this.shipDefs.find((def) => def.name === shipData.name);
+      this.placeShip(new Ship({ ship: shipDef, origin, vertical: shipData.isVert }));
+      this.renderBoardState();
    }
    /**
     * Internal method for calculating all proposed starting position for a given ship info option
@@ -226,34 +251,10 @@ class PlacementBoard extends Board {
     * @param {Vec} params.position
     * @returns {Vec}
     */
-   #calculateProposedStart({ shipInfo, position }) {
-      const startX = shipInfo.isVert ? position.x - shipInfo.offset : position.x; 
-      const startY = shipInfo.isVert ? position.y : position.y - shipInfo.offset;
-      return new Vec(startX, startY);
-   }
-
-   /**
-    * Internal method for calculating all proposed positions for a given ship info option
-    * @param {object} params
-    * @param {import("./ship.js").ShipOptionInfo} params.shipInfo
-    * @param {Vec} params.position
-    * @returns {Vec[]}
-    */
-   #calculatepreposedPositions({ shipInfo, position }) {
-      const preposedPositions = []
-      const startX = shipInfo.isVert ? position.x - shipInfo.offset : position.x; 
-      const startY = shipInfo.isVert ? position.y : position.y - shipInfo.offset;
-      const startPosition = new Vec(startX, startY);
-      preposedPositions.push(startPosition)
-      for (let i = 0; i < shipInfo.len - 1; i++) {
-         const prevPos = preposedPositions[i]
-         if (shipInfo.isVert) {
-            preposedPositions.push(new Vec(prevPos.x + 1, prevPos.y));            
-         } else {
-            preposedPositions.push(new Vec(prevPos.x, prevPos.y + 1));            
-         }
-      }
-      return preposedPositions;
+   #calculateProposedOrigin({ shipInfo, position }) {
+      const { isVert, offset } = shipInfo;
+      const { x , y } = position; 
+      return isVert ? new Vec(x - offset, y) : new Vec(x, y - offset);
    }
 }
 
@@ -271,11 +272,7 @@ class GuessBoard extends Board {
       super({ boardContainer, game, size }) 
       this.boundCheckHit = this.checkHit.bind(this);
       ships.forEach((shipBase) => {
-         const ship = new Ship({ boardState: this.boardState, ship: shipBase });
-         this.ships.push(ship);
-         ship.getPos().forEach((pos) => {
-            this.boardState[pos.x][pos.y] = shipBase.name;
-         })
+         this.placeShip(this.placeShipRandomly(shipBase));
       })
       this.renderBoardState();
    }
