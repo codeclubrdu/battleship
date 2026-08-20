@@ -25,19 +25,6 @@ button {
 	padding: 0 1.25em;
 }
 
-.mode-select-container {
-	display: flex;
-	flex-direction: column;
-}
-
-.single-mode-btn {
-	margin-left: .5em;
-}
-
-.hide {
-	display: none;
-}
-
 #gameboard {
 	display: grid;
 	grid-template-columns: repeat(10, 40px);
@@ -46,47 +33,7 @@ button {
 	width:400px;
 	height:400px;
 	position: relative;
-}
-
-#placementBoardContainer {
-	display: flex;
-	flex-direction: row;
-	gap: 69px;
-}
-
-.placement-board {
-	display: grid;
-	grid-template-columns: repeat(10, 40px);
-	grid-template-rows: repeat(10, 40px);
-	margin:2em auto;
-	width:400px;
-	height:400px;
-	position: relative;
-}
-
-.placement-board div { 
-	width: 40px;
-	height: 40px;
-	border: 1px solid black;
-	box-sizing: border-box;
-}
-
-.ship-options-container {
-	display: flex;
-	flex-direction: column;	
-	gap: 10px
-}
-
-.ship-options-container div {
-	display: flex;
-	flex-direction: row;
-}
-
-.ship-options-container div div {
-	width: 40px;
-	height: 40px;
-	border: 1px solid black;
-	box-sizing: border-box;
+	border: 2px solid black;
 }
 
 .game-board div {
@@ -99,63 +46,9 @@ button {
 #infoContainer {
 	display: flex;
 	flex-direction: row;
-}
-
-#guesses {
-	display: grid;
-	grid-template-columns: repeat(10, 40px);
-	grid-template-rows: repeat(10, 40px);
-}
-
-#legend {
-    display: grid;
-    grid-template-columns: repeat(5, 40px);
-    grid-template-rows: repeat(7, 40px);
-	border: 1px solid black;
-	padding: 1rem;
-}
-
-#legend div {
-	width: 40px;
-	height: 40px;
-	border: 1px solid black;
-	box-sizing: border-box;
-}
-
-.game-board .top-left-corner {
-	border-top: 2px solid black;
-	border-left: 2px solid black;
-}
-
-.game-board .top-right-corner {
-	border-top: 2px solid black;
-	border-right: 2px solid black;
-}
-
-.game-board .bottom-left-corner {
-	border-bottom: 2px solid black;
-	border-left: 2px solid black;
-}
-
-.game-board .bottom-right-corner {
-	border-bottom: 2px solid black;
-	border-right: 2px solid black;
-}
-
-.game-board .top-edge {
-	border-top: 2px solid black;
-}
-
-.game-board .bottom-edge {
-	border-bottom: 2px solid black;
-}
-
-.game-board .left-edge {
-	border-left: 2px solid black;
-}
-
-.game-board .right-edge {
-	border-right: 2px solid black;
+	text-align: center;
+	justify-content: center;
+	gap: 5px;
 }
 
 .carrier {
@@ -178,7 +71,8 @@ button {
 	background-color: pink;
 }
 
-.hit {
+/* .game-board prefix outranks the `.game-board div` border rule above */
+.game-board .hit {
 	background-color: red;
 	border-color: red;
 }
@@ -223,16 +117,4 @@ button {
 	to {
 		transform: translateY(105vh) rotate(720deg);
 	}
-}
-
-#infoContainer {
-	display: flex;
-	flex-direction: row;
-	text-align: center;
-	justify-content: center;
-	gap: 5px;
-}
-
-.vertical {
-	flex-direction: column;
 }

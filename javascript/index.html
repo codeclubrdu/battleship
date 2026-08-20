@@ -5,39 +5,13 @@
 		<link rel="stylesheet" type="text/css" href="style.css">
 	</head>
 	<body>
-	<h1>Battleship</h1>	
-<!-- maybe have a new game button that starts the game? -->
+	<h1>Battleship</h1>
 	<div id="infoContainer">
 		<div id="guessCount"></div>
 		<div id="gameInfo"></div>
 	</div>
-	<div id="placementBoardContainer"></div>
-	<div class="mode-select-container">
-		<button id="singleMode" title="Try to sink all battleships randomly placed on a board in as few moves as possible">Single Mode</button>
-		<button id="vsCpu" title="Set up your board, play against a CPU">Versus CPU</button>
-	</div>
-	<div id="nav">
-		<button id="backBtn" class="hide">Back</button>
-	</div>
-	<form id="singleModeForm" class="single-mode-container hide">
-		<select name="difficulty" id="difficulty" class="difficulty">
-			<option value="easy">Easy</option>
-			<option value="normal" selected>Normal</option>
-			<option value="hard">Hard</option>
-		</select>
-		<button class="single-mode-btn" type="submit">Start</button>
-	</form>
-	<form id="vsCpuModeForm" class="single-mode-container hide">
-		<select name="difficulty" id="difficulty" class="difficulty">
-			<option value="easy">Easy</option>
-			<option value="normal" selected>Normal</option>
-			<option value="hard">Hard</option>
-		</select>
-		<button class="single-mode-btn" type="submit">Start</button>
-	</form>
-	<div id="gameboard" class="game-board">
-	</div>
-	<!-- <div><span id="turn"></span><span>Turn</span></div> -->
-	<script type="module" src="app.js"></script>
+	<!-- Both hooks matter: #gameboard is the grid CSS, .game-board styles the cells. -->
+	<div id="gameboard" class="game-board"></div>
+	<script type="module" src="battleship.js"></script>
 	</body>
 </html>
