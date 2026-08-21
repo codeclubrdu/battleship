@@ -4,7 +4,7 @@ Code Club RDU in-meeting project — build the classic Battleship game.
 
 ## Folders
 
-- `javascript/` — this version runs where JS runs, in the browser. The HTML and CSS shell is provided; you write the game logic in `battleship.js`. Open `index.html` in a browser to run it. Based on the [LearnTeachCode Battleship tutorial](https://github.com/LearnTeachCode/Battleship-JavaScript).
+- `javascript/` — this version runs where JS runs, in the browser. The HTML and CSS shell is provided; you write the game logic in `battleship.js`. Run it over http — `python3 -m http.server` in `javascript/`, then open <http://localhost:8000> (the module script won't load from `file://`). Based on the [LearnTeachCode Battleship tutorial](https://github.com/LearnTeachCode/Battleship-JavaScript).
 - `python/` — runs in the console. Build the game step by step in `battleship.py`, starting from the design thought process in the folder's README. Run with `python3 battleship.py`.
 
 ## No-setup option: GitHub Codespaces

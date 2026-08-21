@@ -35,6 +35,10 @@ edit: I think it's best to put this whole draggable board in it's own container 
 ## Refactors
 - ~~Add JSDoc~~ 
     - see [reference](#jsdoc)
+
+These target the old multi-mode modules, which live only on `jordan/vs-cpu`
+(`d1ef80f`) — the files no longer exist on `jordan/solve`:
+
 - `ship.js` Ship seeding uses while loop, favor functional recursive approach
 - `ship.js` Seed could be used once to prevent expensive `Math.random` call
 - Move all win/loss logic out of `board.js` into `game.js`
