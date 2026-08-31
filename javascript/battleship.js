@@ -3,6 +3,7 @@
 // listener feeds guesses in. Read top to bottom.
 
 const BOARD_SIZE = 10;
+const MAX_GUESSES = 50; // inherited from the old app's "normal" difficulty
 
 // Each cell is a single slot: 0 = empty, 1 = miss, 2 = hit, or a ship-name
 // string ("carrier", ...) for an unhit ship cell. If one slot with several
@@ -26,38 +27,43 @@ const FLEET = [
  * @property {string} name matches the board's ship-name cells
  * @property {number} len
  * @property {{ row: number, col: number }[]} positions
- * @property {number} hits stays 0 until chunk 2 counts them
+ * @property {number} hits sunk when this reaches len
  */
 
 /**
  * @typedef {object} GameState
  * @property {(number | string)[][]} board
  * @property {Ship[]} ships
+ * @property {number} guessCount valid shots taken; repeats don't count
  * @property {string} message shown in the info bar
  * @property {boolean} over
+ * @property {boolean} won only meaningful once over is true
  */
 
 /**
  * Create a fresh game. All game state lives inside this closure; the returned
  * functions are the only way to read or change it.
- * @returns {{ guess: (row: number, col: number) => void, getState: () => GameState }}
+ * @returns {{ guess: (row: number, col: number) => void, playAgain: () => void, getState: () => GameState }}
  */
 function createGame() {
-	const board = createBoard();
-	const state = {
-		board,
-		ships: placeShips(board),
-		message: "Select a square to begin",
-		over: false,
-	};
+	let state = freshState();
 
-	// TEMP (remove in chunk 2): log placements so hits are checkable by hand.
-	for (const ship of state.ships) {
-		console.log(ship.name, ship.positions.map((p) => `(${p.row},${p.col})`).join(" "));
+	/** @returns {GameState} */
+	function freshState() {
+		const board = createBoard();
+		return {
+			board,
+			ships: placeShips(board),
+			guessCount: 0,
+			message: "Select a square to begin",
+			over: false,
+			won: false,
+		};
 	}
 
 	/**
 	 * Fire a shot at { row, col }: hit a ship, mark a miss, or reject a repeat.
+	 * Counts the shot, sinks ships, and ends the game when won or out of guesses.
 	 * @param {number} row
 	 * @param {number} col
 	 */
@@ -66,18 +72,43 @@ function createGame() {
 		const cell = state.board[row][col];
 		if (cell === MISS || cell === HIT) {
 			state.message = "You already shot there.";
-		} else if (cell === EMPTY) {
+			render(state);
+			return;
+		}
+		state.guessCount++;
+		if (cell === EMPTY) {
 			state.board[row][col] = MISS;
-			state.message = "";
+			state.message = "Miss";
 		} else {
 			// anything else is a ship-name string
 			state.board[row][col] = HIT;
-			state.message = "";
+			const ship = state.ships.find((s) => s.name === cell);
+			ship.hits++;
+			state.message = ship.hits === ship.len ? `You sunk my ${ship.name}!` : "Hit!";
 		}
+		checkGameOver();
+		if (state.over && state.won) launchConfetti();
 		render(state);
 	}
 
-	return { guess, getState: () => state };
+	// Win beats the guess cap: sinking the last ship on the last guess is a win.
+	function checkGameOver() {
+		if (state.ships.every((ship) => ship.hits === ship.len)) {
+			state.over = true;
+			state.won = true;
+		} else if (state.guessCount >= MAX_GUESSES) {
+			state.over = true;
+			state.won = false;
+		}
+	}
+
+	// Start over: new board, new random fleet, counters back to zero.
+	function playAgain() {
+		state = freshState();
+		render(state);
+	}
+
+	return { guess, playAgain, getState: () => state };
 }
 
 // Build a BOARD_SIZE x BOARD_SIZE grid of empty cells.
@@ -130,8 +161,9 @@ function randomPlacement(board, len) {
 }
 
 /**
- * Redraw everything from state: every board cell, then the info bar. No other
- * code touches the DOM, so the page always matches the state exactly.
+ * Redraw everything from state: every board cell, the game-over overlay, then
+ * the info bar. No other code touches the DOM (confetti aside), so the page
+ * always matches the state exactly.
  * @param {GameState} state
  */
 function render(state) {
@@ -152,7 +184,42 @@ function render(state) {
 			boardEl.appendChild(cell);
 		}
 	}
+	if (state.over) {
+		boardEl.appendChild(gameOverOverlay(state.won));
+	}
+	document.querySelector("#guessCount").textContent =
+		`Guesses remaining: ${MAX_GUESSES - state.guessCount} |`;
 	document.querySelector("#gameInfo").textContent = state.message;
+}
+
+// The overlay sits inside the board container, so its Play Again button is
+// picked up by the same delegated click listener as the cells.
+function gameOverOverlay(won) {
+	const overlay = document.createElement("div");
+	overlay.id = "gameOver";
+	const message = document.createElement("p");
+	message.textContent = won ? "You won!" : "You lost.";
+	overlay.appendChild(message);
+	const button = document.createElement("button");
+	button.id = "playAgain";
+	button.textContent = "Play again";
+	overlay.appendChild(button);
+	return overlay;
+}
+
+// Rain 60 confetti pieces from the top of the page; each removes itself once
+// the CSS animation is done.
+function launchConfetti() {
+	const colors = ["purple", "blue", "orange", "pink", "red", "gold"];
+	for (let i = 0; i < 60; i++) {
+		const piece = document.createElement("div");
+		piece.classList.add("confetti");
+		piece.style.left = Math.random() * 100 + "vw";
+		piece.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+		piece.style.animationDelay = Math.random() * 1.5 + "s";
+		document.body.appendChild(piece);
+		setTimeout(() => piece.remove(), 4500);
+	}
 }
 
 const game = createGame();
@@ -164,7 +231,11 @@ render(game.getState());
 // convert before guessing.
 document.querySelector("#gameboard").addEventListener("click", (event) => {
 	if (!(event.target instanceof HTMLElement)) return;
+	if (event.target.id === "playAgain") {
+		game.playAgain();
+		return;
+	}
 	const { row, col } = event.target.dataset;
-	if (row === undefined) return; // the container's own border ring, not a cell
+	if (row === undefined) return; // overlay or the container's border ring, not a cell
 	game.guess(Number(row), Number(col));
 });
