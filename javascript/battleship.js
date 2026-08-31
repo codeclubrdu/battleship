@@ -174,13 +174,8 @@ function render(state) {
 			const cell = document.createElement("div");
 			cell.dataset.row = String(row);
 			cell.dataset.col = String(col);
-			// Ship-name cells get no class on purpose: unhit ships stay
-			// hidden, looking exactly like empty water.
-			if (state.board[row][col] === MISS) {
-				cell.classList.add("miss");
-			} else if (state.board[row][col] === HIT) {
-				cell.classList.add("hit");
-			}
+			const cls = cellClass(state, row, col);
+			if (cls) cell.classList.add(cls);
 			boardEl.appendChild(cell);
 		}
 	}
@@ -190,6 +185,35 @@ function render(state) {
 	document.querySelector("#guessCount").textContent =
 		`Guesses remaining: ${MAX_GUESSES - state.guessCount} |`;
 	document.querySelector("#gameInfo").textContent = state.message;
+}
+
+/**
+ * Which CSS class a cell gets, if any. Unhit ship cells get no class on
+ * purpose — hidden ships look exactly like empty water — except at reveal
+ * time: a sunk ship's cells show its own color instead of hit-red, and losing
+ * exposes every remaining ship.
+ * @param {GameState} state
+ * @param {number} row
+ * @param {number} col
+ * @returns {string | null}
+ */
+function cellClass(state, row, col) {
+	const value = state.board[row][col];
+	if (value === MISS) return "miss";
+	if (value === HIT) {
+		// a HIT cell no longer says which ship it was; the ships array does
+		const ship = shipAt(state.ships, row, col);
+		return ship.hits === ship.len ? ship.name : "hit";
+	}
+	if (value !== EMPTY && state.over && !state.won) return value; // loss reveal
+	return null;
+}
+
+// The ship occupying { row, col }, or undefined for open water.
+function shipAt(ships, row, col) {
+	return ships.find((ship) =>
+		ship.positions.some((p) => p.row === row && p.col === col),
+	);
 }
 
 // The overlay sits inside the board container, so its Play Again button is
