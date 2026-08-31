@@ -1,9 +1,6 @@
-// Battleship in one file: state lives in a createGame() closure, render(state)
-// redraws the whole board from that state, and a single delegated click
-// listener feeds guesses in. Read top to bottom.
-
+// Battleship: state lives in a createGame() closure, render(state)
 const BOARD_SIZE = 10;
-const MAX_GUESSES = 50; // inherited from the old app's "normal" difficulty
+const MAX_GUESSES = 50;
 
 // Each cell is a single slot: 0 = empty, 1 = miss, 2 = hit, or a ship-name
 // string ("carrier", ...) for an unhit ship cell. If one slot with several
@@ -27,29 +24,28 @@ const FLEET = [
  * @property {string} name matches the board's ship-name cells
  * @property {number} len
  * @property {{ row: number, col: number }[]} positions
- * @property {number} hits sunk when this reaches len
+ * @property {number} hits 
  */
 
 /**
  * @typedef {object} GameState
  * @property {(number | string)[][]} board
  * @property {Ship[]} ships
- * @property {number} guessCount valid shots taken; repeats don't count
+ * @property {number} guessCount valid shots taken 
  * @property {string} message shown in the info bar
  * @property {boolean} over
- * @property {boolean} won only meaningful once over is true
+ * @property {boolean} won 
  */
 
 /**
- * Create a fresh game. All game state lives inside this closure; the returned
- * functions are the only way to read or change it.
+ * Create a fresh game. All game state lives inside this closure
  * @returns {{ guess: (row: number, col: number) => void, playAgain: () => void, getState: () => GameState }}
  */
 function createGame() {
-	let state = freshState();
+	let state = init();
 
 	/** @returns {GameState} */
-	function freshState() {
+	function init() {
 		const board = createBoard();
 		return {
 			board,
@@ -72,22 +68,20 @@ function createGame() {
 		const cell = state.board[row][col];
 		if (cell === MISS || cell === HIT) {
 			state.message = "You already shot there.";
-			render(state);
-			return;
-		}
-		state.guessCount++;
-		if (cell === EMPTY) {
-			state.board[row][col] = MISS;
-			state.message = "Miss";
 		} else {
-			// anything else is a ship-name string
-			state.board[row][col] = HIT;
-			const ship = state.ships.find((s) => s.name === cell);
-			ship.hits++;
-			state.message = ship.hits === ship.len ? `You sunk my ${ship.name}!` : "Hit!";
+			state.guessCount++;
+			if (cell === EMPTY) {
+				state.board[row][col] = MISS;
+				state.message = "Miss";
+			} else {
+				state.board[row][col] = HIT;
+				const ship = state.ships.find((s) => s.name === cell);
+				ship.hits++;
+				state.message = ship.hits === ship.len ? `You sunk my ${ship.name}!` : "Hit!";
+			}
+			checkGameOver();
+			if (state.over && state.won) launchConfetti();
 		}
-		checkGameOver();
-		if (state.over && state.won) launchConfetti();
 		render(state);
 	}
 
@@ -104,7 +98,7 @@ function createGame() {
 
 	// Start over: new board, new random fleet, counters back to zero.
 	function playAgain() {
-		state = freshState();
+		state = init();
 		render(state);
 	}
 
@@ -138,32 +132,31 @@ function placeShips(board) {
 	return ships;
 }
 
-// Roll random spots until one fits: flip a coin for orientation, pick a random
-// origin, then reject and retry if the ship would run off the board or cross
-// another ship. Ships are allowed to touch.
+// Roll a random spot: flip a coin for orientation, pick a random origin, and
+// keep the ship if it stays on the board and crosses nothing — otherwise roll
+// again recursively. Each retry adds a stack frame (JS doesn't optimize tail
+// calls), so this is only safe while retries stay rare — on this 10x10 board
+// most rolls fit. 
 function randomPlacement(board, len) {
-	while (true) {
-		const across = Math.random() < 0.5;
-		const originRow = Math.floor(Math.random() * BOARD_SIZE);
-		const originCol = Math.floor(Math.random() * BOARD_SIZE);
-		const positions = [];
-		for (let i = 0; i < len; i++) {
-			positions.push({
-				row: across ? originRow : originRow + i,
-				col: across ? originCol + i : originCol,
-			});
-		}
-		const fits = positions.every(
-			({ row, col }) => row < BOARD_SIZE && col < BOARD_SIZE && board[row][col] === EMPTY,
-		);
-		if (fits) return positions;
+	const across = Math.random() < 0.5;
+	const originRow = Math.floor(Math.random() * BOARD_SIZE);
+	const originCol = Math.floor(Math.random() * BOARD_SIZE);
+	const positions = [];
+	for (let i = 0; i < len; i++) {
+		positions.push({
+			row: across ? originRow : originRow + i,
+			col: across ? originCol + i : originCol,
+		});
 	}
+	const fits = positions.every(
+		({ row, col }) => row < BOARD_SIZE && col < BOARD_SIZE && board[row][col] === EMPTY,
+	);
+	return fits ? positions : randomPlacement(board, len);
 }
 
 /**
  * Redraw everything from state: every board cell, the game-over overlay, then
- * the info bar. No other code touches the DOM (confetti aside), so the page
- * always matches the state exactly.
+ * the info bar. 
  * @param {GameState} state
  */
 function render(state) {
@@ -199,25 +192,24 @@ function render(state) {
  */
 function cellClass(state, row, col) {
 	const value = state.board[row][col];
-	if (value === MISS) return "miss";
-	if (value === HIT) {
-		// a HIT cell no longer says which ship it was; the ships array does
+	let cls = null;
+	if (value === MISS) {
+		cls = "miss";
+	} else if (value === HIT) {
 		const ship = shipAt(state.ships, row, col);
-		return ship.hits === ship.len ? ship.name : "hit";
+		cls = ship.hits === ship.len ? ship.name : "hit";
+	} else if (typeof value === "string" && state.over && !state.won) {
+		cls = value; 
 	}
-	if (value !== EMPTY && state.over && !state.won) return value; // loss reveal
-	return null;
+	return cls;
 }
 
-// The ship occupying { row, col }, or undefined for open water.
 function shipAt(ships, row, col) {
 	return ships.find((ship) =>
 		ship.positions.some((p) => p.row === row && p.col === col),
 	);
 }
 
-// The overlay sits inside the board container, so its Play Again button is
-// picked up by the same delegated click listener as the cells.
 function gameOverOverlay(won) {
 	const overlay = document.createElement("div");
 	overlay.id = "gameOver";
@@ -231,8 +223,6 @@ function gameOverOverlay(won) {
 	return overlay;
 }
 
-// Rain 60 confetti pieces from the top of the page; each removes itself once
-// the CSS animation is done.
 function launchConfetti() {
 	const colors = ["purple", "blue", "orange", "pink", "red", "gold"];
 	for (let i = 0; i < 60; i++) {
@@ -249,10 +239,8 @@ function launchConfetti() {
 const game = createGame();
 render(game.getState());
 
-// One delegated listener on the board container. Cells are thrown away and
-// rebuilt on every render, so per-cell listeners would need rebinding each
-// time; the container survives renders. dataset values are strings, so
-// convert before guessing.
+// One delegated listener on the board container. Container survives renders. 
+// Dataset values are strings, so convert before guessing.
 document.querySelector("#gameboard").addEventListener("click", (event) => {
 	if (!(event.target instanceof HTMLElement)) return;
 	if (event.target.id === "playAgain") {
@@ -260,6 +248,6 @@ document.querySelector("#gameboard").addEventListener("click", (event) => {
 		return;
 	}
 	const { row, col } = event.target.dataset;
-	if (row === undefined) return; // overlay or the container's border ring, not a cell
+	if (row === undefined) return; 
 	game.guess(Number(row), Number(col));
 });
